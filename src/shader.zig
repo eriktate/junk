@@ -90,4 +90,9 @@ pub const Shader = struct {
         self.use();
         c.glUniform1i(c.glGetUniformLocation(self.id, name), val);
     }
+
+    pub fn setUint(self: Shader, name: [*]const u8, val: u32) void {
+        self.use();
+        c.glUniform1ui(c.glGetUniformLocation(self.id, name), val);
+    }
 };

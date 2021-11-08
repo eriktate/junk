@@ -2,18 +2,15 @@ const std = @import("std");
 const c = @import("c.zig");
 
 const gl = @import("gl.zig");
+const lag = @import("lag.zig");
 const Window = @import("window.zig").Window;
 const Shader = @import("shader.zig").Shader;
 const Texture = @import("texture.zig").Texture;
+const Quad = gl.Quad;
+const Vertex = gl.Vertex;
+const Vec3 = lag.Vec3(f32);
+const Vec2 = lag.Vec2(u32);
 const print = std.debug.print;
-
-const Vertex = struct {
-    x: f32,
-    y: f32,
-    z: f32,
-    tex_x: f32,
-    tex_y: f32,
-};
 
 pub fn main() anyerror!void {
     var win = try Window.init(640, 640, "kaizo -- float");
@@ -24,36 +21,24 @@ pub fn main() anyerror!void {
     const shader = try Shader.init(vs_src, fs_src);
     shader.use();
 
-    // const dino_src: []const u8 = @embedFile("../assets/dino-export.png");
+    // set screen resolution uniforms for use in coordinate mapping
+    shader.setUint("width", win.width);
+    shader.setUint("height", win.height);
+
     const dino_src: []const u8 = @embedFile("../assets/dino.png");
     _ = try Texture.from_memory(dino_src);
 
     shader.setInt("tex", 0);
 
-    const vertices = [4]Vertex{ Vertex{
-        .x = 0.5,
-        .y = 0.5,
-        .z = 0.0,
-        .tex_x = 1,
-        .tex_y = 0,
-    }, Vertex{ .x = -0.5, .y = 0.5, .z = 0.0, .tex_x = 0, .tex_y = 0 }, Vertex{
-        .x = -0.5,
-        .y = -0.5,
-        .z = 0.0,
-        .tex_x = 0,
-        .tex_y = 1,
-    }, Vertex{
-        .x = 0.5,
-        .y = -0.5,
-        .z = 0.0,
-        .tex_x = 1,
-        .tex_y = 1,
-    } };
+    const quads = [_]Quad{Quad{
+        .tr = Vertex.init(Vec3.init(316, 300, 0), Vec2.init(16, 0)),
+        .tl = Vertex.init(Vec3.init(300, 300, 0), Vec2.init(0, 0)),
+        .bl = Vertex.init(Vec3.init(300, 316, 0), Vec2.init(0, 16)),
+        .br = Vertex.init(Vec3.init(316, 316, 0), Vec2.init(16, 16)),
+    }};
 
-    const indices = [6]u32{
-        0, 1, 2,
-        2, 3, 0,
-    };
+    var indices: [quads.len * 6]u32 = undefined;
+    gl.makeIndices(quads[0..], &indices);
 
     var vao: u32 = undefined;
     c.glGenVertexArrays(1, &vao);
@@ -62,11 +47,11 @@ pub fn main() anyerror!void {
     var vbo: u32 = undefined;
     c.glGenBuffers(1, &vbo);
     c.glBindBuffer(c.GL_ARRAY_BUFFER, vbo);
-    c.glBufferData(c.GL_ARRAY_BUFFER, @sizeOf(Vertex) * vertices.len, &vertices, c.GL_STATIC_DRAW);
+    c.glBufferData(c.GL_ARRAY_BUFFER, @sizeOf(Quad) * quads.len, &quads, c.GL_STATIC_DRAW);
 
-    const tex_offset = 3 * @sizeOf(f32);
+    const tex_offset = @sizeOf(Vec3);
     c.glVertexAttribPointer(0, 3, c.GL_FLOAT, c.GL_FALSE, @sizeOf(Vertex), null);
-    c.glVertexAttribPointer(1, 2, c.GL_FLOAT, c.GL_FALSE, @sizeOf(Vertex), @intToPtr(*const c_void, tex_offset));
+    c.glVertexAttribPointer(1, 2, c.GL_UNSIGNED_INT, c.GL_FALSE, @sizeOf(Vertex), @intToPtr(*const c_void, tex_offset));
     c.glEnableVertexAttribArray(0);
     c.glEnableVertexAttribArray(1);
 
