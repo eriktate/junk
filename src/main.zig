@@ -5,12 +5,14 @@ const lag = @import("lag.zig");
 const Window = @import("window.zig").Window;
 const Shader = @import("shader.zig").Shader;
 const Texture = @import("texture.zig").Texture;
-const Sprite = @import("sprite.zig").Sprite;
+const sprite = @import("sprite.zig");
 
 const Quad = gl.Quad;
 const Vertex = gl.Vertex;
 const Vec3 = lag.Vec3(f32);
 const Vec2 = lag.Vec2(u32);
+const Animation = sprite.Animation;
+const Sprite = sprite.Sprite;
 const print = std.debug.print;
 
 pub fn main() anyerror!void {
@@ -27,18 +29,27 @@ pub fn main() anyerror!void {
     shader.setUint("width", win.width / 2);
     shader.setUint("height", win.height / 2);
 
-    const dino_src: []const u8 = @embedFile("../assets/dino.png");
+    const dino_src: []const u8 = @embedFile("../assets/dino_stand.png");
     _ = try Texture.from_memory(dino_src);
 
     shader.setInt("tex", 0);
 
-    const dino = Sprite.init(Vec3.init(200, 200, 0), 16, 16, Vec2.init(0, 0));
-    var other_dino = dino;
-    other_dino.pos = other_dino.pos.add(Vec3.init(-32, 0, 0));
+    const frames = [_]Vec2{
+        Vec2.init(1, 1),
+        Vec2.init(18, 1),
+        Vec2.init(35, 1),
+        Vec2.init(52, 1),
+        Vec2.init(69, 1),
+        Vec2.init(86, 1),
+    };
 
-    const quads = [_]Quad{
+    var animation = Animation.init(0.05, frames[0..]);
+    const dino = Sprite.init(Vec3.init(200, 200, 0), 16, 16, Vec2.init(1, 1));
+    var animated_dino = Sprite.with_anim(Vec3.init(200 - 32, 200, 0), 16, 16, animation);
+
+    var quads = [_]Quad{
         dino.toQuad(),
-        other_dino.toQuad(),
+        animated_dino.toQuad(),
     };
 
     var indices: [quads.len * 6]u32 = undefined;
@@ -73,8 +84,14 @@ pub fn main() anyerror!void {
     while (!win.shouldClose()) {
         gl.clear();
         c.glBindVertexArray(vao);
+        c.glBindBuffer(c.GL_ARRAY_BUFFER, vbo);
+        c.glBufferSubData(c.GL_ARRAY_BUFFER, 0, @sizeOf(Quad) * quads.len, &quads);
         c.glDrawElements(c.GL_TRIANGLES, indices.len, c.GL_UNSIGNED_INT, null);
         c.glBindVertexArray(0);
+        c.glBindBuffer(c.GL_ARRAY_BUFFER, 0);
+
         win.tick();
+        animated_dino.tick();
+        quads[1] = animated_dino.toQuad();
     }
 }

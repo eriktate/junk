@@ -1,3 +1,4 @@
+const std = @import("std");
 const lag = @import("lag.zig");
 const gl = @import("gl.zig");
 
@@ -6,29 +7,95 @@ const Vec2 = lag.Vec2(u32);
 const Quad = gl.Quad;
 const Vertex = gl.Vertex;
 
+pub const Animation = struct {
+    current_frame: f32,
+    frame_rate: f32,
+    frames: []const Vec2, // slice of top-left-corner tex coords. width/height determined by the owning sprite
+
+    pub fn init(frame_rate: f32, frames: []const Vec2) Animation {
+        return Animation{
+            .current_frame = 0,
+            .frame_rate = frame_rate,
+            .frames = frames,
+        };
+    }
+
+    pub fn tick(self: *Animation) void {
+        self.current_frame += self.frame_rate;
+        const f_len = @intToFloat(f32, self.frames.len);
+        if (self.current_frame > f_len) {
+            self.current_frame -= f_len;
+        }
+    }
+
+    pub fn get_frame(self: Animation) Vec2 {
+        return self.frames[@floatToInt(usize, self.current_frame)];
+    }
+};
+
+const ShowTag = enum {
+    tex,
+    anim,
+};
+
+const Show = union(ShowTag) {
+    tex: Vec2,
+    anim: Animation,
+};
+
 pub const Sprite = struct {
     pos: Vec3,
     width: u32,
     height: u32,
-    tex_coord: Vec2,
+    show: Show,
 
-    pub fn init(pos: Vec3, width: u32, height: u32, tex_coord: Vec2) Sprite {
+    pub fn init(pos: Vec3, width: u32, height: u32, tex: Vec2) Sprite {
         return Sprite{
             .pos = pos,
             .width = width,
             .height = height,
-            .tex_coord = tex_coord,
+            .show = Show{ .tex = tex },
         };
+    }
+
+    pub fn with_anim(pos: Vec3, width: u32, height: u32, anim: Animation) Sprite {
+        return Sprite{
+            .pos = pos,
+            .width = width,
+            .height = height,
+            .show = Show{ .anim = anim },
+        };
+    }
+
+    pub fn set_texture(self: *Sprite, tex: Vec2) void {
+        self.show = Show{ .tex = tex };
+    }
+
+    pub fn set_animation(self: *Sprite, anim: Animation) void {
+        self.show = Show{ .anim = anim };
     }
 
     pub fn toQuad(self: Sprite) Quad {
         const f_width: f32 = @intToFloat(f32, self.width);
         const f_height: f32 = @intToFloat(f32, self.height);
+        var tex: Vec2 = undefined;
+        switch (self.show) {
+            ShowTag.tex => |t| tex = t,
+            ShowTag.anim => |anim| tex = anim.get_frame(),
+        }
+
         return Quad{
-            .tr = Vertex.init(Vec3.init(self.pos.x + f_width, self.pos.y, self.pos.z), Vec2.init(self.tex_coord.x + self.width, self.tex_coord.y)),
-            .tl = Vertex.init(self.pos, self.tex_coord),
-            .bl = Vertex.init(Vec3.init(self.pos.x, self.pos.y + f_height, self.pos.z), Vec2.init(self.tex_coord.x, self.tex_coord.y + self.height)),
-            .br = Vertex.init(self.pos.add(Vec3.init(f_width, f_height, 0)), self.tex_coord.add(Vec2.init(self.width, self.height))),
+            .tr = Vertex.init(Vec3.init(self.pos.x + f_width, self.pos.y, self.pos.z), Vec2.init(tex.x + self.width, tex.y)),
+            .tl = Vertex.init(self.pos, tex),
+            .bl = Vertex.init(Vec3.init(self.pos.x, self.pos.y + f_height, self.pos.z), Vec2.init(tex.x, tex.y + self.height)),
+            .br = Vertex.init(self.pos.add(Vec3.init(f_width, f_height, 0)), tex.add(Vec2.init(self.width, self.height))),
         };
+    }
+
+    pub fn tick(self: *Sprite) void {
+        switch (self.show) {
+            ShowTag.tex => return,
+            ShowTag.anim => |*anim| anim.tick(),
+        }
     }
 };
