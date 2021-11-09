@@ -22,20 +22,26 @@ pub fn main() anyerror!void {
     shader.use();
 
     // set screen resolution uniforms for use in coordinate mapping
-    shader.setUint("width", win.width);
-    shader.setUint("height", win.height);
+    // modifying this affects the "zoom" level
+    shader.setUint("width", win.width / 2);
+    shader.setUint("height", win.height / 2);
 
     const dino_src: []const u8 = @embedFile("../assets/dino.png");
     _ = try Texture.from_memory(dino_src);
 
     shader.setInt("tex", 0);
 
-    const quads = [_]Quad{Quad{
-        .tr = Vertex.init(Vec3.init(316, 300, 0), Vec2.init(16, 0)),
-        .tl = Vertex.init(Vec3.init(300, 300, 0), Vec2.init(0, 0)),
-        .bl = Vertex.init(Vec3.init(300, 316, 0), Vec2.init(0, 16)),
-        .br = Vertex.init(Vec3.init(316, 316, 0), Vec2.init(16, 16)),
-    }};
+    const quads = [_]Quad{ Quad{
+        .tr = Vertex.init(Vec3.init(216, 200, 0), Vec2.init(16, 0)),
+        .tl = Vertex.init(Vec3.init(200, 200, 0), Vec2.init(0, 0)),
+        .bl = Vertex.init(Vec3.init(200, 216, 0), Vec2.init(0, 16)),
+        .br = Vertex.init(Vec3.init(216, 216, 0), Vec2.init(16, 16)),
+    }, Quad{
+        .tr = Vertex.init(Vec3.init(116, 100, 0), Vec2.init(16, 0)),
+        .tl = Vertex.init(Vec3.init(100, 100, 0), Vec2.init(0, 0)),
+        .bl = Vertex.init(Vec3.init(100, 116, 0), Vec2.init(0, 16)),
+        .br = Vertex.init(Vec3.init(116, 116, 0), Vec2.init(16, 16)),
+    } };
 
     var indices: [quads.len * 6]u32 = undefined;
     gl.makeIndices(quads[0..], &indices);
