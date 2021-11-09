@@ -1,11 +1,12 @@
 const std = @import("std");
 const c = @import("c.zig");
-
 const gl = @import("gl.zig");
 const lag = @import("lag.zig");
 const Window = @import("window.zig").Window;
 const Shader = @import("shader.zig").Shader;
 const Texture = @import("texture.zig").Texture;
+const Sprite = @import("sprite.zig").Sprite;
+
 const Quad = gl.Quad;
 const Vertex = gl.Vertex;
 const Vec3 = lag.Vec3(f32);
@@ -31,17 +32,14 @@ pub fn main() anyerror!void {
 
     shader.setInt("tex", 0);
 
-    const quads = [_]Quad{ Quad{
-        .tr = Vertex.init(Vec3.init(216, 200, 0), Vec2.init(16, 0)),
-        .tl = Vertex.init(Vec3.init(200, 200, 0), Vec2.init(0, 0)),
-        .bl = Vertex.init(Vec3.init(200, 216, 0), Vec2.init(0, 16)),
-        .br = Vertex.init(Vec3.init(216, 216, 0), Vec2.init(16, 16)),
-    }, Quad{
-        .tr = Vertex.init(Vec3.init(116, 100, 0), Vec2.init(16, 0)),
-        .tl = Vertex.init(Vec3.init(100, 100, 0), Vec2.init(0, 0)),
-        .bl = Vertex.init(Vec3.init(100, 116, 0), Vec2.init(0, 16)),
-        .br = Vertex.init(Vec3.init(116, 116, 0), Vec2.init(16, 16)),
-    } };
+    const dino = Sprite.init(Vec3.init(200, 200, 0), 16, 16, Vec2.init(0, 0));
+    var other_dino = dino;
+    other_dino.pos = other_dino.pos.add(Vec3.init(-32, 0, 0));
+
+    const quads = [_]Quad{
+        dino.toQuad(),
+        other_dino.toQuad(),
+    };
 
     var indices: [quads.len * 6]u32 = undefined;
     gl.makeIndices(quads[0..], &indices);
