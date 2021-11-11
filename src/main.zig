@@ -29,8 +29,8 @@ pub fn main() anyerror!void {
     shader.setUint("width", win.width / 2);
     shader.setUint("height", win.height / 2);
 
-    const dino_src: []const u8 = @embedFile("../assets/dino_stand.png");
-    _ = try Texture.from_memory(dino_src);
+    const telly_src: []const u8 = @embedFile("../assets/telly.png");
+    _ = try Texture.from_memory(telly_src);
 
     shader.setInt("tex", 0);
 
@@ -43,13 +43,13 @@ pub fn main() anyerror!void {
         Vec2.init(86, 1),
     };
 
-    var animation = Animation.init(0.05, frames[0..]);
-    const dino = Sprite.init(Vec3.init(200, 200, 0), 16, 16, Vec2.init(1, 1));
-    var animated_dino = Sprite.with_anim(Vec3.init(200 - 32, 200, 0), 16, 16, animation);
+    var animation = Animation.init(10, frames[0..]);
+    const telly = Sprite.init(Vec3.init(200, 200, 0), 16, 24, Vec2.init(1, 1));
+    var animated_telly = Sprite.with_anim(Vec3.init(200 - 32, 200, 0), 16, 24, animation);
 
     var quads = [_]Quad{
-        dino.toQuad(),
-        animated_dino.toQuad(),
+        telly.toQuad(),
+        animated_telly.toQuad(),
     };
 
     var indices: [quads.len * 6]u32 = undefined;
@@ -62,7 +62,7 @@ pub fn main() anyerror!void {
     var vbo: u32 = undefined;
     c.glGenBuffers(1, &vbo);
     c.glBindBuffer(c.GL_ARRAY_BUFFER, vbo);
-    c.glBufferData(c.GL_ARRAY_BUFFER, @sizeOf(Quad) * quads.len, &quads, c.GL_STATIC_DRAW);
+    c.glBufferData(c.GL_ARRAY_BUFFER, @sizeOf(Quad) * quads.len, &quads, c.GL_DYNAMIC_DRAW);
 
     const tex_offset = @sizeOf(Vec3);
     c.glVertexAttribPointer(0, 3, c.GL_FLOAT, c.GL_FALSE, @sizeOf(Vertex), null);
@@ -73,7 +73,7 @@ pub fn main() anyerror!void {
     var ebo: u32 = undefined;
     c.glGenBuffers(1, &ebo);
     c.glBindBuffer(c.GL_ELEMENT_ARRAY_BUFFER, ebo);
-    c.glBufferData(c.GL_ELEMENT_ARRAY_BUFFER, @sizeOf(u32) * indices.len, &indices, c.GL_STATIC_DRAW);
+    c.glBufferData(c.GL_ELEMENT_ARRAY_BUFFER, @sizeOf(u32) * indices.len, &indices, c.GL_DYNAMIC_DRAW);
 
     c.glBindVertexArray(0);
     c.glBindBuffer(c.GL_ARRAY_BUFFER, 0);
@@ -81,7 +81,17 @@ pub fn main() anyerror!void {
 
     c.glEnable(c.GL_BLEND);
     c.glBlendFunc(c.GL_SRC_ALPHA, c.GL_ONE_MINUS_SRC_ALPHA);
+
+    // init timing
+    var now: f64 = c.glfwGetTime();
+    var prev_time: f64 = now;
+    var delta: f64 = 0;
+
     while (!win.shouldClose()) {
+        now = c.glfwGetTime();
+        delta = now - prev_time;
+        prev_time = now;
+
         gl.clear();
         c.glBindVertexArray(vao);
         c.glBindBuffer(c.GL_ARRAY_BUFFER, vbo);
@@ -91,7 +101,7 @@ pub fn main() anyerror!void {
         c.glBindBuffer(c.GL_ARRAY_BUFFER, 0);
 
         win.tick();
-        animated_dino.tick();
-        quads[1] = animated_dino.toQuad();
+        animated_telly.tick(delta);
+        quads[1] = animated_telly.toQuad();
     }
 }

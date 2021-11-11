@@ -20,8 +20,8 @@ pub const Animation = struct {
         };
     }
 
-    pub fn tick(self: *Animation) void {
-        self.current_frame += self.frame_rate;
+    pub fn tick(self: *Animation, delta: f64) void {
+        self.current_frame += @floatCast(f32, self.frame_rate * delta);
         const f_len = @intToFloat(f32, self.frames.len);
         if (self.current_frame > f_len) {
             self.current_frame -= f_len;
@@ -92,10 +92,10 @@ pub const Sprite = struct {
         };
     }
 
-    pub fn tick(self: *Sprite) void {
+    pub fn tick(self: *Sprite, delta: f64) void {
         switch (self.show) {
             ShowTag.tex => return,
-            ShowTag.anim => |*anim| anim.tick(),
+            ShowTag.anim => |*anim| anim.tick(delta),
         }
     }
 };
