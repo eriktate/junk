@@ -1,6 +1,7 @@
 const std = @import("std");
 const lag = @import("lag.zig");
 const gl = @import("gl.zig");
+const BBox = @import("bbox.zig").BBox;
 
 const Vec3 = lag.Vec3(f32);
 const Vec2 = lag.Vec2(u32);
@@ -44,13 +45,15 @@ const Show = union(ShowTag) {
 };
 
 pub const Sprite = struct {
+    id: usize,
     pos: Vec3,
     width: u32,
     height: u32,
     show: Show,
 
-    pub fn init(pos: Vec3, width: u32, height: u32, tex: Vec2) Sprite {
+    pub fn init(id: usize, pos: Vec3, width: u32, height: u32, tex: Vec2) Sprite {
         return Sprite{
+            .id = id,
             .pos = pos,
             .width = width,
             .height = height,
@@ -58,8 +61,9 @@ pub const Sprite = struct {
         };
     }
 
-    pub fn with_anim(pos: Vec3, width: u32, height: u32, anim: Animation) Sprite {
+    pub fn with_anim(id: usize, pos: Vec3, width: u32, height: u32, anim: Animation) Sprite {
         return Sprite{
+            .id = id,
             .pos = pos,
             .width = width,
             .height = height,
@@ -90,6 +94,10 @@ pub const Sprite = struct {
             .bl = Vertex.init(Vec3.init(self.pos.x, self.pos.y + f_height, self.pos.z), Vec2.init(tex.x, tex.y + self.height)),
             .br = Vertex.init(self.pos.add(Vec3.init(f_width, f_height, 0)), tex.add(Vec2.init(self.width, self.height))),
         };
+    }
+
+    pub fn makeBBox(self: Sprite) BBox {
+        return BBox.init(self.id, self.pos, self.width, self.height);
     }
 
     pub fn tick(self: *Sprite, delta: f64) void {

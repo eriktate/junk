@@ -52,4 +52,8 @@ pub const Window = struct {
         c.glfwSwapBuffers(self.win);
         c.glfwPollEvents();
     }
+
+    pub fn getKey(self: Window, code: i32) bool {
+        return c.glfwGetKey(self.win, code) == c.GLFW_PRESS;
+    }
 };
