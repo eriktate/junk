@@ -8,6 +8,7 @@ const Texture = @import("texture.zig").Texture;
 const sprite = @import("sprite.zig");
 const Controller = @import("controller.zig").Controller;
 const BBox = @import("bbox.zig").BBox;
+const Manager = @import("manager.zig").Manager;
 
 const Quad = gl.Quad;
 const Vertex = gl.Vertex;
@@ -32,10 +33,16 @@ fn doesCollide(target: BBox, others: []BBox) bool {
 }
 
 pub fn main() anyerror!void {
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    var alloc = &arena.allocator;
+
     var win = try Window.init(640, 640, "kaizo -- float");
     defer win.close();
 
     const ctrl = Controller.init(&win);
+    var mgr = try Manager.init(alloc, 500);
+
     const vs_src = @embedFile("../shaders/vs.glsl");
     const fs_src = @embedFile("../shaders/fs.glsl");
     const shader = try Shader.init(vs_src, fs_src);
@@ -61,24 +68,15 @@ pub fn main() anyerror!void {
     };
 
     var animation = Animation.init(10, frames[0..]);
-    const telly = Sprite.init(0, Vec3.init(200, 280, 0), 16, 24, Vec2.init(1, 1));
-    var player = Sprite.with_anim(1, Vec3.init(200 - 32, 200, 0), 16, 24, animation);
-    var platform = Sprite.init(2, Vec3.init(200 - 32, 264, 0), 16, 24, Vec2.init(104, 1));
 
-    var bounding_boxes = [_]BBox{
-        telly.makeBBox(),
-        player.makeBBox(),
-        platform.makeBBox(),
-    };
+    const player = try mgr.add(Sprite.with_anim(Vec3.init(200 - 32, 200, 0), 16, 24, animation));
+    _ = try mgr.add(Sprite.init(Vec3.init(200, 280, 0), 16, 24, Vec2.init(1, 1)));
+    _ = try mgr.add(Sprite.init(Vec3.init(200 - 32, 264, 0), 16, 24, Vec2.init(104, 1)));
 
-    var quads = [_]Quad{
-        telly.toQuad(),
-        player.toQuad(),
-        platform.toQuad(),
-    };
-
-    var indices: [quads.len * 6]u32 = undefined;
-    gl.makeIndices(quads[0..], &indices);
+    var quads: [3]Quad = undefined;
+    quads[0] = mgr.quads.items[0];
+    quads[1] = mgr.quads.items[1];
+    quads[2] = mgr.quads.items[2];
 
     var vao: u32 = undefined;
     c.glGenVertexArrays(1, &vao);
@@ -87,18 +85,17 @@ pub fn main() anyerror!void {
     var vbo: u32 = undefined;
     c.glGenBuffers(1, &vbo);
     c.glBindBuffer(c.GL_ARRAY_BUFFER, vbo);
-    c.glBufferData(c.GL_ARRAY_BUFFER, @sizeOf(Quad) * quads.len, &quads, c.GL_DYNAMIC_DRAW);
+    c.glBufferData(c.GL_ARRAY_BUFFER, @intCast(c_long, @sizeOf(Quad) * mgr.quads.items.len), mgr.quads.items.ptr, c.GL_DYNAMIC_DRAW);
 
-    const tex_offset = @sizeOf(Vec3);
     c.glVertexAttribPointer(0, 3, c.GL_FLOAT, c.GL_FALSE, @sizeOf(Vertex), null);
-    c.glVertexAttribPointer(1, 2, c.GL_UNSIGNED_INT, c.GL_FALSE, @sizeOf(Vertex), @intToPtr(*const c_void, tex_offset));
+    c.glVertexAttribPointer(1, 2, c.GL_UNSIGNED_INT, c.GL_FALSE, @sizeOf(Vertex), @intToPtr(*const c_void, @sizeOf(Vec3)));
     c.glEnableVertexAttribArray(0);
     c.glEnableVertexAttribArray(1);
 
     var ebo: u32 = undefined;
     c.glGenBuffers(1, &ebo);
     c.glBindBuffer(c.GL_ELEMENT_ARRAY_BUFFER, ebo);
-    c.glBufferData(c.GL_ELEMENT_ARRAY_BUFFER, @sizeOf(u32) * indices.len, &indices, c.GL_DYNAMIC_DRAW);
+    c.glBufferData(c.GL_ELEMENT_ARRAY_BUFFER, @intCast(c_long, @sizeOf(u32) * mgr.indices.items.len), mgr.indices.items.ptr, c.GL_DYNAMIC_DRAW);
 
     c.glBindVertexArray(0);
     c.glBindBuffer(c.GL_ARRAY_BUFFER, 0);
@@ -121,23 +118,20 @@ pub fn main() anyerror!void {
         delta = now - prev_time;
         prev_time = now;
 
-        var player_box = player.makeBBox();
-        player_box.pos = player_box.pos.add(Vec3.init(0, 1, 0));
-        const grounded = doesCollide(player_box, bounding_boxes[0..]);
+        const grounded = mgr.checkCollisionRelative(player, Vec3.init(0, 1, 0));
         if (!grounded) {
             vspeed += @floatCast(f32, grav * delta);
         }
 
-        // var new_pos = player.pos;
-        var new_pos = player.pos.add(Vec3.init(0, vspeed, 0));
+        var move_vec = Vec3.init(0, vspeed, 0);
 
         // controll stuff
         if (ctrl.getRight()) {
-            new_pos = new_pos.add(Vec3.init(0.5, 0, 0));
+            move_vec.x += 0.5;
         }
 
         if (ctrl.getLeft()) {
-            new_pos = new_pos.add(Vec3.init(-0.5, 0, 0));
+            move_vec.x -= 0.5;
         }
 
         if (ctrl.getJump()) {
@@ -146,34 +140,27 @@ pub fn main() anyerror!void {
             }
         }
 
-        // check x
-        player_box.pos = Vec3.init(new_pos.x, player.pos.y, 0);
-        if (doesCollide(player_box, bounding_boxes[0..])) {
-            print("X collision!\n", .{});
-            new_pos.x = player.pos.x;
+        // check for collisions on each dimension (keeps things smooth and slide-y)
+        if (mgr.checkCollisionRelative(player, Vec3.init(move_vec.x, 0, 0))) {
+            move_vec.x = 0;
         }
 
-        // check y
-        player_box.pos = Vec3.init(player.pos.x, new_pos.y, 0);
-        if (doesCollide(player_box, bounding_boxes[0..])) {
-            print("Y collision!\n", .{});
-            new_pos.y = player.pos.y;
+        if (mgr.checkCollisionRelative(player, Vec3.init(0, move_vec.y, 0))) {
+            move_vec.y = 0;
             vspeed = 0;
         }
 
-        player.pos = new_pos;
-        bounding_boxes[player.id].pos = new_pos;
+        _ = try mgr.move(player, move_vec);
 
         gl.clear();
         c.glBindVertexArray(vao);
         c.glBindBuffer(c.GL_ARRAY_BUFFER, vbo);
-        c.glBufferSubData(c.GL_ARRAY_BUFFER, 0, @sizeOf(Quad) * quads.len, &quads);
-        c.glDrawElements(c.GL_TRIANGLES, indices.len, c.GL_UNSIGNED_INT, null);
+        c.glBufferSubData(c.GL_ARRAY_BUFFER, 0, @intCast(c_long, @sizeOf(Quad) * mgr.quads.items.len), mgr.quads.items.ptr);
+        c.glDrawElements(c.GL_TRIANGLES, @intCast(c_int, mgr.indices.items.len), c.GL_UNSIGNED_INT, null);
         c.glBindVertexArray(0);
         c.glBindBuffer(c.GL_ARRAY_BUFFER, 0);
 
         win.tick();
-        player.tick(delta);
-        quads[1] = player.toQuad();
+        mgr.tick(delta);
     }
 }

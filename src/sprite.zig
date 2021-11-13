@@ -51,9 +51,9 @@ pub const Sprite = struct {
     height: u32,
     show: Show,
 
-    pub fn init(id: usize, pos: Vec3, width: u32, height: u32, tex: Vec2) Sprite {
+    pub fn init(pos: Vec3, width: u32, height: u32, tex: Vec2) Sprite {
         return Sprite{
-            .id = id,
+            .id = 0,
             .pos = pos,
             .width = width,
             .height = height,
@@ -61,9 +61,9 @@ pub const Sprite = struct {
         };
     }
 
-    pub fn with_anim(id: usize, pos: Vec3, width: u32, height: u32, anim: Animation) Sprite {
+    pub fn with_anim(pos: Vec3, width: u32, height: u32, anim: Animation) Sprite {
         return Sprite{
-            .id = id,
+            .id = 0,
             .pos = pos,
             .width = width,
             .height = height,
