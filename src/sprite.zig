@@ -49,6 +49,8 @@ pub const Sprite = struct {
     pos: Vec3,
     width: u32,
     height: u32,
+    x_scale: f32,
+    y_scale: f32,
     show: Show,
 
     pub fn init(pos: Vec3, width: u32, height: u32, tex: Vec2) Sprite {
@@ -57,6 +59,8 @@ pub const Sprite = struct {
             .pos = pos,
             .width = width,
             .height = height,
+            .x_scale = 1,
+            .y_scale = 1,
             .show = Show{ .tex = tex },
         };
     }
@@ -67,6 +71,8 @@ pub const Sprite = struct {
             .pos = pos,
             .width = width,
             .height = height,
+            .x_scale = 1,
+            .y_scale = 1,
             .show = Show{ .anim = anim },
         };
     }
