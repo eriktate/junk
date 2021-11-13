@@ -1,11 +1,11 @@
 #version 450 core
 layout (location = 0) in vec3 in_pos;
-layout (location = 1) in vec2 in_tex_coord;
+// layout (location = 1) in vec4 in_color;
 
 uniform uint width;
 uniform uint height;
 
-out vec2 tex_coord;
+// out vec3 color;
 
 vec3 pos;
 
@@ -17,9 +17,6 @@ void main() {
 		in_pos.z
 	);
 
-	// pos = vec3(in_pos.x / width, in_pos.y / height, in_pos.z);
-
 	gl_Position = vec4(pos, 1.0);
-	// gl_Position = vec4(in_pos, 1.0);
-	tex_coord = in_tex_coord;
+	// out_color = color;
 }

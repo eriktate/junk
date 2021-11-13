@@ -10,6 +10,13 @@ pub fn Vec2(comptime T: type) type {
             };
         }
 
+        pub fn zero() Vec2(T) {
+            return Vec2(T){
+                .x = 0,
+                .y = 0,
+            };
+        }
+
         pub fn add(self: Vec2(T), other: Vec2(T)) Vec2(T) {
             return Vec2(T){
                 .x = self.x + other.x,
@@ -45,6 +52,14 @@ pub fn Vec3(comptime T: type) type {
                 .x = x,
                 .y = y,
                 .z = z,
+            };
+        }
+
+        pub fn zero() Vec3(T) {
+            return Vec3(T){
+                .x = 0,
+                .y = 0,
+                .z = 0,
             };
         }
 

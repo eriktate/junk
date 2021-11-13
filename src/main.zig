@@ -9,6 +9,7 @@ const sprite = @import("sprite.zig");
 const Controller = @import("controller.zig").Controller;
 const BBox = @import("bbox.zig").BBox;
 const Manager = @import("manager.zig").Manager;
+const Debug = @import("debug.zig").Debug;
 
 const Quad = gl.Quad;
 const Vertex = gl.Vertex;
@@ -18,18 +19,27 @@ const Animation = sprite.Animation;
 const Sprite = sprite.Sprite;
 const print = std.debug.print;
 
-fn doesCollide(target: BBox, others: []BBox) bool {
-    for (others) |box| {
-        if (box.id == target.id) {
-            continue;
-        }
+fn getCursorPos(win: *c.GLFWwindow) Vec3 {
+    // get mouse pos
+    var mouse_x: f64 = undefined;
+    var mouse_y: f64 = undefined;
+    c.glfwGetCursorPos(win, &mouse_x, &mouse_y);
+    const mouse_pos = Vec3.init(@floatCast(f32, mouse_x), @floatCast(f32, mouse_y), 0);
 
-        if (target.overlaps(box)) {
-            return true;
-        }
+    // get cursor pos
+    var cursor_pos = mouse_pos;
+    cursor_pos.x = @divTrunc(cursor_pos.x, 16);
+    cursor_pos.y = @divTrunc(cursor_pos.y, 16);
+    cursor_pos = cursor_pos.scale(16);
+
+    return cursor_pos;
+}
+
+export fn mouseCallback(win: ?*c.GLFWwindow, button: c_int, action: c_int, _: c_int) void {
+    if (button == c.GLFW_MOUSE_BUTTON_LEFT and action == c.GLFW_PRESS) {
+        const cursor_pos = getCursorPos(win.?);
+        print("Clicked the LMB at: {d}, {d}\n", .{ cursor_pos.x, cursor_pos.y });
     }
-
-    return false;
 }
 
 pub fn main() anyerror!void {
@@ -40,22 +50,30 @@ pub fn main() anyerror!void {
     var win = try Window.init(640, 640, "kaizo -- float");
     defer win.close();
 
+    _ = c.glfwSetMouseButtonCallback(win.win, mouseCallback);
     const ctrl = Controller.init(&win);
     var mgr = try Manager.init(alloc, 500);
 
     const vs_src = @embedFile("../shaders/vs.glsl");
     const fs_src = @embedFile("../shaders/fs.glsl");
     const shader = try Shader.init(vs_src, fs_src);
-    shader.use();
+
+    const debug_vs_src = @embedFile("../shaders/debug_vs.glsl");
+    const debug_fs_src = @embedFile("../shaders/debug_fs.glsl");
+    const debug_shader = try Shader.init(debug_vs_src, debug_fs_src);
 
     // set screen resolution uniforms for use in coordinate mapping
     // modifying this affects the "zoom" level
-    shader.setUint("width", win.width / 2);
-    shader.setUint("height", win.height / 2);
+    shader.setUint("width", win.width);
+    shader.setUint("height", win.height);
+    debug_shader.setUint("width", win.width);
+    debug_shader.setUint("height", win.height);
 
-    const telly_src: []const u8 = @embedFile("../assets/telly.png");
-    _ = try Texture.from_memory(telly_src);
+    // const telly_src = @embedFile("../assets/telly.png");
+    // _ = try Texture.from_memory(telly_src);
 
+    const tileset_src = @embedFile("../assets/wasteland.png");
+    const tileset_tex = try Texture.from_memory(tileset_src);
     shader.setInt("tex", 0);
 
     const frames = [_]Vec2{
@@ -72,11 +90,7 @@ pub fn main() anyerror!void {
     const player = try mgr.add(Sprite.with_anim(Vec3.init(200 - 32, 200, 0), 16, 24, animation));
     _ = try mgr.add(Sprite.init(Vec3.init(200, 280, 0), 16, 24, Vec2.init(1, 1)));
     _ = try mgr.add(Sprite.init(Vec3.init(200 - 32, 264, 0), 16, 24, Vec2.init(104, 1)));
-
-    var quads: [3]Quad = undefined;
-    quads[0] = mgr.quads.items[0];
-    quads[1] = mgr.quads.items[1];
-    quads[2] = mgr.quads.items[2];
+    _ = try mgr.add(Sprite.init(Vec3.init(0, 0, 0), tileset_tex.width, tileset_tex.height, Vec2.init(0, 0)));
 
     var vao: u32 = undefined;
     c.glGenVertexArrays(1, &vao);
@@ -112,6 +126,7 @@ pub fn main() anyerror!void {
     const grav: f64 = 3;
     var vspeed: f32 = 0;
 
+    var debug = try Debug.init(alloc, 500);
     while (!win.shouldClose()) {
         // timings
         now = c.glfwGetTime();
@@ -152,11 +167,21 @@ pub fn main() anyerror!void {
 
         _ = try mgr.move(player, move_vec);
 
+        shader.use();
         gl.clear();
         c.glBindVertexArray(vao);
         c.glBindBuffer(c.GL_ARRAY_BUFFER, vbo);
         c.glBufferSubData(c.GL_ARRAY_BUFFER, 0, @intCast(c_long, @sizeOf(Quad) * mgr.quads.items.len), mgr.quads.items.ptr);
         c.glDrawElements(c.GL_TRIANGLES, @intCast(c_int, mgr.indices.items.len), c.GL_UNSIGNED_INT, null);
+
+        // render debug artifacts
+        debug_shader.use();
+        const cursor_pos = getCursorPos(win.win);
+        try debug.drawLine(cursor_pos.add(Vec3.init(0, 0, 0)), cursor_pos.add(Vec3.init(16, 0, 0)));
+        try debug.drawLine(cursor_pos.add(Vec3.init(0, 0, 0)), cursor_pos.add(Vec3.init(0, 16, 0)));
+        debug.draw();
+
+        // reset bound resources
         c.glBindVertexArray(0);
         c.glBindBuffer(c.GL_ARRAY_BUFFER, 0);
 

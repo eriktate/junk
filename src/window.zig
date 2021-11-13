@@ -27,8 +27,8 @@ pub const Window = struct {
         }
 
         // window hints
-        c.glfwWindowHint(c.GLFW_CONTEXT_VERSION_MAJOR, 3);
-        c.glfwWindowHint(c.GLFW_CONTEXT_VERSION_MINOR, 3);
+        c.glfwWindowHint(c.GLFW_CONTEXT_VERSION_MAJOR, 4);
+        c.glfwWindowHint(c.GLFW_CONTEXT_VERSION_MINOR, 5);
         c.glfwWindowHint(c.GLFW_OPENGL_PROFILE, c.GLFW_OPENGL_CORE_PROFILE);
         window.win = c.glfwCreateWindow(width, height, title, null, null) orelse return WindowError.CreateFailed;
 
