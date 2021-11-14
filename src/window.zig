@@ -1,5 +1,7 @@
 const std = @import("std");
 const c = @import("c.zig");
+const lag = @import("lag.zig");
+const Vec3 = lag.Vec3(f32);
 
 const WindowError = error{
     InitFailed,
@@ -55,5 +57,13 @@ pub const Window = struct {
 
     pub fn getKey(self: Window, code: i32) bool {
         return c.glfwGetKey(self.win, code) == c.GLFW_PRESS;
+    }
+
+    pub fn getMousePos(self: Window) Vec3 {
+        var mouse_x: f64 = undefined;
+        var mouse_y: f64 = undefined;
+        c.glfwGetCursorPos(self.win, &mouse_x, &mouse_y);
+
+        return Vec3.init(@floatCast(f32, mouse_x), @floatCast(f32, mouse_y), 0);
     }
 };

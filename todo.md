@@ -3,6 +3,7 @@
 - [x] Bounding boxes and collision detection
 - [x] Gravity (mostly to play with collisions)
 
+
 # TODO 11/13/21
 - [x] Clean up last stream's work
 - [x] Simple environment tiles
@@ -16,6 +17,20 @@
 	- [ ] define bounding boxes for the environment
 	- [ ] de/serialize level data
 	- [ ] Save/load from file
+
+
+# TODO 11/14/21
+- [x] Review what we did last time
+- [ ] Basic level editor
+	- [x] select a tile
+	- [x] click to add a tile
+	- [x] drag to "draw" tiles snapped to a grid
+	- [x] right click to delete
+	- [x] break sprite -> bbox 1:1 relationship
+	- [ ] define bounding boxes for the environment
+	- [ ] de/serialize level data
+	- [ ] Save/load from file
+	- [ ] stretch goal: undo/redo
 
 
 # TODO ?

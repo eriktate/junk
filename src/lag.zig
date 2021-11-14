@@ -38,6 +38,10 @@ pub fn Vec2(comptime T: type) type {
         pub fn unit(self: Vec2(T)) Vec2(T) {
             return self.scale(1 / self.mag());
         }
+
+        pub fn eq(self: Vec2(T), other: Vec2(T)) bool {
+            return self.x == other.x and self.y == other.y;
+        }
     };
 }
 
@@ -85,6 +89,10 @@ pub fn Vec3(comptime T: type) type {
 
         pub fn unit(self: Vec3(T)) Vec3(T) {
             return self.scale(1 / self.mag());
+        }
+
+        pub fn eq(self: Vec3(T), other: Vec3(T)) bool {
+            return self.x == other.x and self.y == other.y and self.z == other.z;
         }
     };
 }

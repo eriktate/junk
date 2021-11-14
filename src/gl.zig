@@ -13,6 +13,10 @@ pub const Vertex = struct {
             .tex_pos = tex_pos,
         };
     }
+
+    pub fn eq(self: Vertex, other: Vertex) bool {
+        return self.pos.eq(other.pos) and self.tex_pos.eq(other.tex_pos);
+    }
 };
 
 pub const Quad = struct {
@@ -20,6 +24,19 @@ pub const Quad = struct {
     tl: Vertex,
     bl: Vertex,
     br: Vertex,
+
+    pub fn zero() Quad {
+        return Quad{
+            .tr = Vertex.init(Vec3.zero(), Vec2.zero()),
+            .tl = Vertex.init(Vec3.zero(), Vec2.zero()),
+            .bl = Vertex.init(Vec3.zero(), Vec2.zero()),
+            .br = Vertex.init(Vec3.zero(), Vec2.zero()),
+        };
+    }
+
+    pub fn eq(self: Quad, other: Quad) bool {
+        return self.tr.eq(other.tr) and self.tl.eq(other.tl) and self.bl.eq(other.bl) and self.br.eq(other.br);
+    }
 };
 
 pub fn makeIndices(quads: []const Quad, indices: [*]u32) void {

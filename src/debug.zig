@@ -1,6 +1,8 @@
 const std = @import("std");
 const c = @import("c.zig");
 const lag = @import("lag.zig");
+
+const Shader = @import("shader.zig").Shader;
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const Vec3 = lag.Vec3(f32);
@@ -10,16 +12,18 @@ const Vertex = @import("gl.zig").Vertex;
 
 pub const Debug = struct {
     vertices: ArrayList(Vertex),
+    shader: Shader,
     vao: u32,
     vbo: u32,
 
-    pub fn init(alloc: *Allocator, cap: u64) !Debug {
+    pub fn init(alloc: *Allocator, cap: u64, shader: Shader) !Debug {
         var vertices = ArrayList(Vertex).init(alloc);
 
         try vertices.ensureTotalCapacity(cap);
 
         var debug = Debug{
             .vertices = vertices,
+            .shader = shader,
             .vao = undefined,
             .vbo = undefined,
         };
@@ -49,6 +53,7 @@ pub const Debug = struct {
     }
 
     pub fn draw(self: *Debug) void {
+        self.shader.use();
         c.glBindVertexArray(self.vao);
         c.glBindBuffer(c.GL_ARRAY_BUFFER, self.vbo);
         c.glBufferData(c.GL_ARRAY_BUFFER, @intCast(c_long, @sizeOf(Vertex) * self.vertices.items.len), self.vertices.items.ptr, c.GL_DYNAMIC_DRAW);

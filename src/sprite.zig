@@ -29,17 +29,17 @@ pub const Animation = struct {
         }
     }
 
-    pub fn get_frame(self: Animation) Vec2 {
+    pub fn getFrame(self: Animation) Vec2 {
         return self.frames[@floatToInt(usize, self.current_frame)];
     }
 };
 
-const ShowTag = enum {
+pub const ShowTag = enum {
     tex,
     anim,
 };
 
-const Show = union(ShowTag) {
+pub const Show = union(ShowTag) {
     tex: Vec2,
     anim: Animation,
 };
@@ -91,7 +91,7 @@ pub const Sprite = struct {
         var tex: Vec2 = undefined;
         switch (self.show) {
             ShowTag.tex => |t| tex = t,
-            ShowTag.anim => |anim| tex = anim.get_frame(),
+            ShowTag.anim => |anim| tex = anim.getFrame(),
         }
 
         return Quad{
@@ -110,6 +110,13 @@ pub const Sprite = struct {
         switch (self.show) {
             ShowTag.tex => return,
             ShowTag.anim => |*anim| anim.tick(delta),
+        }
+    }
+
+    pub fn getTex(self: Sprite) Vec2 {
+        switch (self.show) {
+            ShowTag.tex => |tex| return tex,
+            ShowTag.anim => |anim| return anim.getFrame(),
         }
     }
 };
