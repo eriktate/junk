@@ -24,6 +24,13 @@ pub fn Vec2(comptime T: type) type {
             };
         }
 
+        pub fn sub(self: Vec2(T), other: Vec2(T)) Vec2(T) {
+            return Vec2(T){
+                .x = self.x - other.x,
+                .y = self.y - other.y,
+            };
+        }
+
         pub fn scale(self: Vec2(T), scalar: f32) Vec2(T) {
             return Vec2(T){
                 .x = self.x * scalar,
@@ -72,6 +79,14 @@ pub fn Vec3(comptime T: type) type {
                 .x = self.x + other.x,
                 .y = self.y + other.y,
                 .z = self.z + other.z,
+            };
+        }
+
+        pub fn sub(self: Vec3(T), other: Vec3(T)) Vec3(T) {
+            return Vec3(T){
+                .x = self.x - other.x,
+                .y = self.y - other.y,
+                .z = self.z - other.z,
             };
         }
 

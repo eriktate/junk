@@ -44,12 +44,22 @@ export fn mouseCallback(_: ?*c.GLFWwindow, button: c_int, action: c_int, _: c_in
     }
 }
 
+export fn keyCallback(_: ?*c.GLFWwindow, key: c_int, _: c_int, action: c_int, _: c_int) void {
+    if (key == c.GLFW_KEY_TAB and action == c.GLFW_PRESS) {
+        level_editor.toggleMode();
+    }
+
+    if (key == c.GLFW_KEY_S and action == c.GLFW_PRESS) {
+        level_editor.serialize();
+    }
+}
+
 pub fn main() anyerror!void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
     var alloc = &arena.allocator;
 
-    var win = try Window.init(640, 640, "kaizo -- float");
+    var win = try Window.init(640, 640, "junk -- float");
     defer win.close();
 
     var mgr = try Manager.init(alloc, 500);
@@ -81,6 +91,7 @@ pub fn main() anyerror!void {
 
     level_editor = LevelEditor.init(&mgr, win, &debug, tileset_tex);
     _ = c.glfwSetMouseButtonCallback(win.win, mouseCallback);
+    _ = c.glfwSetKeyCallback(win.win, keyCallback);
 
     const frames = [_]Vec2{
         Vec2.init(1, 1),
@@ -93,10 +104,15 @@ pub fn main() anyerror!void {
 
     var animation = Animation.init(10, frames[0..]);
 
-    const player = try mgr.add(Sprite.with_anim(Vec3.init(200 - 32, 200, 0), 16, 24, animation));
-    _ = try mgr.add(Sprite.init(Vec3.init(200, 280, 0), 16, 24, Vec2.init(48, 16)));
-    _ = try mgr.add(Sprite.init(Vec3.init(200 - 32, 264, 0), 16, 24, Vec2.init(104, 1)));
-    _ = try mgr.add(Sprite.init(Vec3.init(0, 0, 0), tileset_tex.width, tileset_tex.height, Vec2.init(0, 0)));
+    const player_spr = Sprite.with_anim(Vec3.init(200 - 32, 200, 0), 16, 24, animation);
+    const tileset_spr = Sprite.init(Vec3.init(0, 0, 0), tileset_tex.width, tileset_tex.height, Vec2.init(0, 0));
+    var platform_spr = Sprite.init(Vec3.init(200, 280, 0), 16, 24, Vec2.init(104, 1));
+
+    const player = try mgr.add(player_spr, player_spr.makeBBox());
+    _ = try mgr.add(platform_spr, platform_spr.makeBBox());
+    platform_spr.pos = platform_spr.pos.sub(Vec3.init(16, 0, 0));
+    _ = try mgr.add(platform_spr, platform_spr.makeBBox());
+    _ = try mgr.add(tileset_spr, null);
 
     var vao: u32 = undefined;
     c.glGenVertexArrays(1, &vao);

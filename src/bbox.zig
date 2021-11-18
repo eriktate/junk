@@ -16,11 +16,19 @@ pub const BBox = struct {
         };
     }
 
-    pub fn overlaps(self: BBox, other: BBox) bool {
+    fn checkOverlap(self: BBox, other: BBox) bool {
         const pos = self.pos;
         const overlap_x = (pos.x <= other.pos.x + other.width and pos.x >= other.pos.x) or (pos.x + self.width >= other.pos.x and pos.x + self.width < other.pos.x + other.width);
         const overlap_y = (pos.y <= other.pos.y + other.height and pos.y >= other.pos.y) or (pos.y + self.height >= other.pos.y and pos.y + self.height <= other.pos.y + other.height);
 
         return overlap_x and overlap_y;
+    }
+
+    pub fn overlaps(self: BBox, other: BBox) bool {
+        return checkOverlap(self, other) or checkOverlap(other, self);
+    }
+
+    pub fn contains(self: BBox, pos: Vec3) bool {
+        return pos.x > self.pos.x and pos.x < self.pos.x + self.width and pos.y > self.pos.y and pos.y < self.pos.y + self.height;
     }
 };

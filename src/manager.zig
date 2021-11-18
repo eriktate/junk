@@ -6,6 +6,7 @@ const lag = @import("lag.zig");
 const Sprite = @import("sprite.zig").Sprite;
 const Quad = @import("gl.zig").Quad;
 const BBox = @import("bbox.zig").BBox;
+const Debug = @import("debug.zig").Debug;
 const Vec3 = lag.Vec3(f32);
 const Vec2 = lag.Vec2(u32);
 
@@ -65,75 +66,102 @@ pub const Manager = struct {
         };
     }
 
-    pub fn add(self: *Manager, sprite: Sprite) !usize {
-        var entity = Entity.init(self.entities.items.len, self.sprites.items.len, self.boxes.items.len, self.quads.items.len);
-        var spr = sprite;
+    pub fn add(self: *Manager, opt_sprite: ?Sprite, opt_bbox: ?BBox) !usize {
+        var entity = &Entity.init(self.entities.items.len, null, null, null);
 
         // look for empty entity slots
         for (self.entities.items) |ent, idx| {
             if (ent == null) {
                 entity.id = idx;
+                self.entities.items[idx] = entity.*;
+                entity = &self.entities.items[idx].?;
+                break;
             }
         }
-        spr.id = entity.id;
 
         // look for empty sprite slots
-        for (self.sprites.items) |s, idx| {
-            if (s == null) {
-                entity.sprite_idx = idx;
-                self.sprites.items[idx] = spr;
+        if (opt_sprite) |sprite| {
+            var spr = sprite;
+            spr.id = entity.id;
+            for (self.sprites.items) |existing, idx| {
+                if (existing == null) {
+                    std.debug.print("Adding sprite to empty slot: {d}\n", .{spr.id});
+                    entity.sprite_idx = idx;
+                    self.sprites.items[idx] = spr;
+                    break;
+                }
+            }
+
+            // look for empty quad slots
+            for (self.quads.items) |quad, idx| {
+                if (quad.eq(Quad.zero())) {
+                    entity.quad_idx = idx;
+                    self.quads.items[idx] = spr.toQuad();
+                    break;
+                }
             }
         }
 
         // look for empty bounding box slots
-        for (self.boxes.items) |box, idx| {
-            if (box == null) {
-                var new_box = spr.makeBBox();
-                new_box.id = entity.id;
-                entity.box_idx = idx;
-                self.boxes.items[idx] = box;
-            }
-        }
-
-        // look for empty quad slots
-        for (self.quads.items) |quad, idx| {
-            if (quad.eq(Quad.zero())) {
-                entity.box_idx = idx;
-                self.quads.items[idx] = spr.toQuad();
+        if (opt_bbox) |bbox| {
+            var box = bbox;
+            box.id = entity.id;
+            for (self.boxes.items) |existing, idx| {
+                if (existing == null) {
+                    box.id = entity.id;
+                    entity.box_idx = idx;
+                    self.boxes.items[idx] = box;
+                    break;
+                }
             }
         }
 
         // no empty slots found, so append to the end
         if (entity.id == self.entities.items.len) {
-            try self.entities.append(entity);
+            try self.entities.append(entity.*);
+            entity = &self.entities.items[entity.id].?;
         }
 
-        if (entity.sprite_idx == self.sprites.items.len) {
-            try self.sprites.append(spr);
+        if (opt_sprite) |sprite| {
+            var spr = sprite;
+            if (entity.sprite_idx == null) {
+                entity.sprite_idx = self.sprites.items.len;
+                spr.id = entity.id;
+                std.debug.print("Adding sprite to new slot: {d}\n", .{spr.id});
+                try self.sprites.append(spr);
+            }
+
+            if (entity.quad_idx == null) {
+                entity.quad_idx = self.quads.items.len;
+                try self.quads.append(spr.toQuad());
+
+                const id_u32 = @intCast(u32, entity.quad_idx.?);
+                // TODO (etate): this doesn't account for shapes other than quads (which might be fine?)
+                // add new indices for the new quad
+                try self.indices.append(id_u32 * 4);
+                try self.indices.append(id_u32 * 4 + 1);
+                try self.indices.append(id_u32 * 4 + 2);
+                try self.indices.append(id_u32 * 4 + 2);
+                try self.indices.append(id_u32 * 4 + 3);
+                try self.indices.append(id_u32 * 4);
+            }
         }
 
-        if (entity.box_idx == self.boxes.items.len) {
-            try self.boxes.append(spr.makeBBox());
+        if (opt_bbox) |bbox| {
+            var box = bbox;
+            box.id = entity.id;
+            if (entity.box_idx == null) {
+                entity.box_idx = self.boxes.items.len;
+                box.id = entity.id;
+                try self.boxes.append(box);
+            }
         }
 
-        if (entity.quad_idx == self.quads.items.len) {
-            try self.quads.append(spr.toQuad());
-
-            const id_u32 = @intCast(u32, entity.quad_idx.?);
-            // TODO (etate): this doesn't account for shapes other than quads (which might be fine?)
-            // add new indices for the new quad
-            try self.indices.append(id_u32 * 4);
-            try self.indices.append(id_u32 * 4 + 1);
-            try self.indices.append(id_u32 * 4 + 2);
-            try self.indices.append(id_u32 * 4 + 2);
-            try self.indices.append(id_u32 * 4 + 3);
-            try self.indices.append(id_u32 * 4);
-        }
-
+        std.debug.print("New entity: {any}\n", .{entity});
+        std.debug.print("New entity in array: {any}\n", .{self.entities.items[entity.id]});
         return entity.id;
     }
 
-    // TODO (etate): Removals are going to be hard, because Quads need to be actually contiguous.
     pub fn remove(self: Manager, id: usize) void {
         // null/zero slots will get re-used by the add function
         if (self.entities.items[id]) |entity| {
@@ -175,6 +203,18 @@ pub const Manager = struct {
     pub fn checkCollisionRelative(self: Manager, id: usize, pos: Vec3) bool {
         const target = self.getBox(id) orelse return false;
         return self.checkCollision(id, target.pos.add(pos));
+    }
+
+    pub fn checkPos(self: Manager, pos: Vec3) ?usize {
+        for (self.boxes.items) |opt_box| {
+            if (opt_box) |box| {
+                if (box.contains(pos)) {
+                    return box.id;
+                }
+            }
+        }
+
+        return null;
     }
 
     pub fn tick(self: Manager, delta: f64) void {
@@ -255,14 +295,30 @@ pub const Manager = struct {
 
     // mostly for the level editor
     pub fn getAtPos(self: Manager, pos: Vec3) ?usize {
-        for (self.sprites.items) |opt_spr| {
+        for (self.sprites.items) |opt_spr, idx| {
             if (opt_spr) |spr| {
                 if (spr.pos.eq(pos)) {
+                    std.debug.print("Found sprite at idx: {d}\n", .{idx});
                     return spr.id;
                 }
             }
         }
 
         return null;
+    }
+
+    pub fn drawBoxes(self: Manager, debug: *Debug) !void {
+        for (self.boxes.items) |opt_box| {
+            if (opt_box) |box| {
+                // top
+                try debug.drawLine(box.pos, box.pos.add(Vec3.init(box.width, 0, 0)));
+                // left
+                try debug.drawLine(box.pos, box.pos.add(Vec3.init(0, box.height, 0)));
+                // bottom
+                try debug.drawLine(box.pos.add(Vec3.init(0, box.height, 0)), box.pos.add(Vec3.init(box.width, box.height, 0)));
+                // right
+                try debug.drawLine(box.pos.add(Vec3.init(box.width, 0, 0)), box.pos.add(Vec3.init(box.width, box.height, 0)));
+            }
+        }
     }
 };
