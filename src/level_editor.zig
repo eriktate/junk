@@ -5,7 +5,8 @@ const Manager = @import("manager.zig").Manager;
 const Window = @import("window.zig").Window;
 const Texture = @import("texture.zig").Texture;
 const Debug = @import("debug.zig").Debug;
-const BBox = @import("bbox.zig").BBox;
+const BBox = @import("bbox.zig");
+const fixedBufferStream = std.io.fixedBufferStream;
 const Allocator = std.mem.Allocator;
 const Sprite = sprite.Sprite;
 const ShowTag = sprite.ShowTag;
@@ -185,92 +186,111 @@ pub const LevelEditor = struct {
         try self.manager.drawBoxes(self.debug);
     }
 
-    pub fn serialize(self: LevelEditor) void {
-        const tile_size = 5 * @sizeOf(u32);
-        const box_size = 4 * @sizeOf(u32);
-
+    // TODO (etate): maybe rip all of this out and use the
+    // de/serialization in std-lib-orphanage
+    pub fn serialize(self: LevelEditor, fb: anytype) !void {
         var tile_len: u32 = 0;
         var box_len: u32 = 0;
-        var buffer: [1024 * 1024 * 2]u8 = undefined;
-        var idx: usize = 2 * @sizeOf(u32);
+        var writer = fb.writer();
+
+        // reserve space for tile_len and box_len
+        try writer.writeIntLittle(u32, 0);
+        try writer.writeIntLittle(u32, 0);
 
         for (self.manager.sprites.items) |opt_spr| {
             if (opt_spr) |spr| {
-                // const mask: u32 = 255;
-                // const x = @floatToInt(u32, spr.pos.x);
-                // var x_bytes: [4]u8 = undefined;
-                // x_bytes[3] = x & mask;
-                // x_bytes[2] = @shrExact(x, 8) & mask;
-                // x_bytes[1] = @shrExact(x, 16) & mask;
-                // x_bytes[0] = @shrExact(x, 24) & mask;
-                var tile: [6]u32 = undefined;
                 const tex = spr.getTex();
-                tile[0] = @floatToInt(u32, spr.pos.x);
-                tile[1] = @floatToInt(u32, spr.pos.y);
-                tile[2] = 0;
-                tile[3] = tex.x;
-                tile[4] = tex.y;
+                try writer.writeIntLittle(u32, @floatToInt(u32, spr.pos.x));
+                try writer.writeIntLittle(u32, @floatToInt(u32, spr.pos.y));
+                try writer.writeIntLittle(u32, 0);
+                try writer.writeIntLittle(u32, tex.x);
+                try writer.writeIntLittle(u32, tex.y);
 
-                @memcpy(@ptrCast([*]u8, &buffer[idx]), @ptrCast([*]const u8, &tile), tile_size);
-                idx += tile_size;
                 tile_len += 1;
             }
         }
 
         for (self.manager.boxes.items) |opt_box| {
             if (opt_box) |bbox| {
-                var box: [4]u32 = undefined;
-                box[0] = @floatToInt(u32, bbox.pos.x);
-                box[1] = @floatToInt(u32, bbox.pos.y);
-                box[2] = @floatToInt(u32, bbox.width);
-                box[3] = @floatToInt(u32, bbox.height);
+                try writer.writeIntLittle(u32, @floatToInt(u32, bbox.pos.x));
+                try writer.writeIntLittle(u32, @floatToInt(u32, bbox.pos.y));
+                try writer.writeIntLittle(u32, @floatToInt(u32, bbox.width));
+                try writer.writeIntLittle(u32, @floatToInt(u32, bbox.height));
 
-                @memcpy(@ptrCast([*]u8, &buffer[idx]), @ptrCast([*]const u8, &box), box_size);
-                idx += 4;
                 box_len += 1;
             }
         }
 
-        std.debug.print("ACTUAL TILE LEN: {d}\n", .{tile_len});
-        std.debug.print("ACTUAL BOX LEN: {d}\n", .{box_len});
-        std.mem.copy(u8, buffer[0..4], std.mem.asBytes(&tile_len));
-        std.mem.copy(u8, buffer[4..8], std.mem.asBytes(&box_len));
+        const pos = fb.pos;
+        fb.pos = 0;
+        try writer.writeIntLittle(u32, tile_len);
+        try writer.writeIntLittle(u32, box_len);
+        fb.pos = pos;
+    }
 
-        var count: usize = 0;
-        while (count < idx) {
-            std.debug.print("{x}", .{buffer[count]});
-            count += 1;
+    pub fn deserialize(self: LevelEditor, reader: anytype) !void {
+        self.manager.clear();
+        const tile_len = try reader.readIntLittle(u32);
+        const box_len = try reader.readIntLittle(u32);
+
+        var idx: usize = 0;
+        while (idx < tile_len) {
+            var pos = Vec3.zero();
+            var tex_coord = Vec2.zero();
+            pos.x = @intToFloat(f32, try reader.readIntLittle(u32));
+            pos.y = @intToFloat(f32, try reader.readIntLittle(u32));
+
+            // TODO (etate): res holds the tileset ID here. Need to do
+            // something with it
+            _ = try reader.readIntLittle(u32);
+
+            tex_coord.x = try reader.readIntLittle(u32);
+            tex_coord.y = try reader.readIntLittle(u32);
+
+            var tile = Sprite.init(pos, 16, 16, tex_coord);
+            _ = self.manager.add(tile, null) catch unreachable;
+
+            idx += 1;
         }
-        std.debug.print("\n", .{});
-        deserialize(buffer[0..]);
+
+        idx = 0;
+        while (idx < box_len) {
+            var pos = Vec3.zero();
+            var width: u32 = 0;
+            var height: u32 = 0;
+            pos.x = @intToFloat(f32, try reader.readIntLittle(u32));
+            pos.y = @intToFloat(f32, try reader.readIntLittle(u32));
+            width = try reader.readIntLittle(u32);
+            height = try reader.readIntLittle(u32);
+            const box = BBox.init(0, pos, width, height);
+            _ = self.manager.add(null, box) catch unreachable;
+            idx += 1;
+        }
     }
 
-    fn ReadResult(comptime T: type) type {
-        return struct {
-            val: T,
-            input: []u8,
-        };
+    pub fn saveLevel(self: LevelEditor, fname: []const u8) !void {
+        var file = try std.fs.cwd().createFile(
+            fname,
+            .{},
+        );
+        defer file.close();
+
+        var buffer: [2 * 1024 * 1024]u8 = undefined;
+        var fb = fixedBufferStream(buffer[0..]);
+
+        try self.serialize(&fb);
+        try file.writeAll(fb.getWritten());
+        std.debug.print("Saved level!\n", .{});
     }
 
-    fn read(comptime T: type, input: []u8) ReadResult(T) {
-        var res: ReadResult(T) = undefined;
-        res.val = std.mem.bytesToValue(T, input[0..@sizeOf(T)]);
-        res.input = input[@sizeOf(T)..];
-        return res;
-    }
+    pub fn loadLevel(self: LevelEditor, fname: []const u8) !void {
+        var file = try std.fs.cwd().openFile(
+            fname,
+            .{ .read = true },
+        );
+        defer file.close();
 
-    pub fn deserialize(input: []u8) void {
-        // const tile_stride = 5 * @sizeOf(u32);
-        const tile_len = read(u32, input[0..]);
-        const box_len = read(u32, tile_len.input[0..]);
-
-        std.debug.print("Tile Len: {d}\n", .{tile_len.val});
-        std.debug.print("Box Len: {d}\n", .{box_len.val});
-
-        // var idx: usize = 0;
-        // var byte_idx: usize = 0;
-        // while (idx < tile_len) {
-        //     const x = std.mem.bytesToValue(u32, input)
-        // }
+        try self.deserialize(file.reader());
+        std.debug.print("Level loaded!\n", .{});
     }
 };

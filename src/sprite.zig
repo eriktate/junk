@@ -1,7 +1,7 @@
 const std = @import("std");
 const lag = @import("lag.zig");
 const gl = @import("gl.zig");
-const BBox = @import("bbox.zig").BBox;
+const BBox = @import("bbox.zig");
 
 const Vec3 = lag.Vec3(f32);
 const Vec2 = lag.Vec2(u32);

@@ -1,7 +1,13 @@
 # TODO next stream
-- [ ] Basic level editor
-	- [ ] de/serialize level data
-	- [ ] Save/load from file
+- [ ] Look at switching to orphanage serializer
+- [ ] Use multiple textures
+- [ ] Matrices!
+- [ ] Orthographic projection matrix
+
+# TODO 11/18/21
+- [x] Basic level editor
+	- [x] de/serialize level data
+	- [x] Save/load from file
 
 # TODO 11/16/21
 - [ ] Basic level editor
@@ -58,9 +64,6 @@
 
 # TODO ?
 - [ ] Create some openGL helpers around VAO/VBO/EBO since we're starting to create/manage them in different files
-- [ ] Matrices!
-- [ ] Orthographic projection matrix
-- [ ] Load multiple textures
 - [ ] Level editor: undo/redo
 
 

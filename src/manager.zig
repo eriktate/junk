@@ -5,7 +5,7 @@ const ArrayList = std.ArrayList;
 const lag = @import("lag.zig");
 const Sprite = @import("sprite.zig").Sprite;
 const Quad = @import("gl.zig").Quad;
-const BBox = @import("bbox.zig").BBox;
+const BBox = @import("bbox.zig");
 const Debug = @import("debug.zig").Debug;
 const Vec3 = lag.Vec3(f32);
 const Vec2 = lag.Vec2(u32);
@@ -157,8 +157,6 @@ pub const Manager = struct {
             }
         }
 
-        std.debug.print("New entity: {any}\n", .{entity});
-        std.debug.print("New entity in array: {any}\n", .{self.entities.items[entity.id]});
         return entity.id;
     }
 
@@ -178,6 +176,25 @@ pub const Manager = struct {
             }
 
             self.entities.items[id] = null;
+        }
+    }
+
+    // clears everything from the entity manager
+    pub fn clear(self: Manager) void {
+        for (self.entities.items) |_, idx| {
+            self.entities.items[idx] = null;
+        }
+
+        for (self.sprites.items) |_, idx| {
+            self.sprites.items[idx] = null;
+        }
+
+        for (self.boxes.items) |_, idx| {
+            self.boxes.items[idx] = null;
+        }
+
+        for (self.quads.items) |_, idx| {
+            self.quads.items[idx] = Quad.zero();
         }
     }
 

@@ -50,7 +50,12 @@ export fn keyCallback(_: ?*c.GLFWwindow, key: c_int, _: c_int, action: c_int, _:
     }
 
     if (key == c.GLFW_KEY_S and action == c.GLFW_PRESS) {
-        level_editor.serialize();
+        level_editor.saveLevel("test.lv") catch unreachable;
+    }
+
+    if (key == c.GLFW_KEY_L and action == c.GLFW_PRESS) {
+        std.debug.print("Pressed L\n", .{});
+        level_editor.loadLevel("test.lv") catch unreachable;
     }
 }
 
