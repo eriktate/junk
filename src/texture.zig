@@ -45,7 +45,6 @@ pub const Texture = struct {
 
         c.glGenTextures(1, &tex.id);
         setActiveTexture(tex.id);
-        std.debug.print("TEXTURE ID: {d}\n", .{tex.id});
         c.glBindTexture(c.GL_TEXTURE_2D, tex.id);
         c.glTexImage2D(c.GL_TEXTURE_2D, 0, c.GL_RGBA, width, height, 0, c.GL_RGBA, c.GL_UNSIGNED_BYTE, data);
         c.glTexParameteri(c.GL_TEXTURE_2D, c.GL_TEXTURE_MIN_FILTER, c.GL_NEAREST);

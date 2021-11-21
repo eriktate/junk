@@ -13,6 +13,7 @@ const Vertex = @import("gl.zig").Vertex;
 pub const Debug = struct {
     vertices: ArrayList(Vertex),
     shader: Shader,
+    active: bool,
     vao: u32,
     vbo: u32,
 
@@ -26,6 +27,7 @@ pub const Debug = struct {
             .shader = shader,
             .vao = undefined,
             .vbo = undefined,
+            .active = false,
         };
 
         c.glGenVertexArrays(1, &debug.vao);
@@ -53,11 +55,19 @@ pub const Debug = struct {
     }
 
     pub fn draw(self: *Debug) void {
+        if (!self.active) {
+            return;
+        }
+
         self.shader.use();
         c.glBindVertexArray(self.vao);
         c.glBindBuffer(c.GL_ARRAY_BUFFER, self.vbo);
         c.glBufferData(c.GL_ARRAY_BUFFER, @intCast(c_long, @sizeOf(Vertex) * self.vertices.items.len), self.vertices.items.ptr, c.GL_DYNAMIC_DRAW);
         c.glDrawArrays(c.GL_LINES, 0, @intCast(c_int, self.vertices.items.len));
         self.vertices.resize(0) catch unreachable;
+    }
+
+    pub fn toggle(self: *Debug) void {
+        self.active = !self.active;
     }
 };

@@ -62,7 +62,6 @@ pub const Animation = struct {
         const y_offset = 1 + pos.y;
         const y_pos = pos.y * self.frame_height + y_offset;
 
-        std.debug.print("Pixel pos: {d}, {d}\n", .{ x_pos, y_pos });
         return Vec2.init(x_pos, y_pos);
     }
 };

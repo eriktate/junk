@@ -1,7 +1,7 @@
 # TODO next stream
 - [ ] Cleanup/Refactor stream!
-	- [ ] Make debug flag part of Debug struct.
-	- [ ] Remove unnecessary prints
+	- [x] Make debug flag part of Debug struct.
+	- [x] Remove unnecessary prints
 	- [ ] Add Atlas struct that can be derived from Texture (e.g. tex.makeAtlas()). Refactor Animations to use Atlases
 	- [ ] Leverage top level imports throughout
 	- [ ] Make active texture IDs predictable (maybe define them as enums?)

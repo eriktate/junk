@@ -22,7 +22,7 @@ const Sprite = sprite.Sprite;
 const print = std.debug.print;
 
 var level_editor: LevelEditor = undefined;
-var debugFlag: bool = true;
+var debug: Debug = undefined;
 
 const PlayerAnim = enum {
     Idle,
@@ -67,7 +67,7 @@ export fn keyCallback(_: ?*c.GLFWwindow, key: c_int, _: c_int, action: c_int, _:
     }
 
     if (key == c.GLFW_KEY_SEMICOLON and action == c.GLFW_PRESS) {
-        debugFlag = !debugFlag;
+        debug.toggle();
     }
 }
 
@@ -98,7 +98,7 @@ pub fn main() anyerror!void {
     debug_shader.setUint("width", win.width);
     debug_shader.setUint("height", win.height);
 
-    var debug = try Debug.init(alloc, 500, debug_shader);
+    debug = try Debug.init(alloc, 500, debug_shader);
     const telly_src = @embedFile("../assets/telly_atlas.png");
     const telly_tex = try Texture.fromMemory(telly_src);
 
@@ -152,10 +152,6 @@ pub fn main() anyerror!void {
     const player = try mgr.add(player_spr, player_spr.makeBBox());
     _ = try mgr.add(tileset_spr, null);
 
-    for (mgr.quads.items) |quad| {
-        std.debug.print("Quad tex IDs: {d}, {d}, {d}, {d}", .{ quad.tr.tex_id, quad.tl.tex_id, quad.bl.tex_id, quad.br.tex_id });
-    }
-
     var vao: u32 = undefined;
     c.glGenVertexArrays(1, &vao);
     c.glBindVertexArray(vao);
@@ -165,9 +161,6 @@ pub fn main() anyerror!void {
     c.glBindBuffer(c.GL_ARRAY_BUFFER, vbo);
     c.glBufferData(c.GL_ARRAY_BUFFER, @intCast(c_long, @sizeOf(Quad) * mgr.quads.items.len), mgr.quads.items.ptr, c.GL_DYNAMIC_DRAW);
 
-    std.debug.print("Size of vertex: {d}\n", .{@sizeOf(Vertex)});
-    std.debug.print("Size of offset: {d}\n", .{@sizeOf(Vec3) + @sizeOf(Vec2)});
-    std.debug.print("Void pointer offset: {d}\n", .{@intToPtr(*const c_void, 20)});
     c.glVertexAttribPointer(0, 3, c.GL_FLOAT, c.GL_FALSE, @sizeOf(Vertex), null);
     c.glVertexAttribPointer(1, 2, c.GL_UNSIGNED_INT, c.GL_FALSE, @sizeOf(Vertex), @intToPtr(*const c_void, @sizeOf(Vec3)));
     c.glVertexAttribIPointer(2, 1, c.GL_UNSIGNED_INT, @sizeOf(Vertex), @intToPtr(*const c_void, @sizeOf(Vec3) + @sizeOf(Vec2)));
@@ -281,9 +274,7 @@ pub fn main() anyerror!void {
         const cursor_pos = level_editor.getCursorPos();
         try debug.drawLine(cursor_pos.add(Vec3.init(0, 0, 0)), cursor_pos.add(Vec3.init(16, 0, 0)));
         try debug.drawLine(cursor_pos.add(Vec3.init(0, 0, 0)), cursor_pos.add(Vec3.init(0, 16, 0)));
-        if (debugFlag) {
-            debug.draw();
-        }
+        debug.draw();
 
         // reset bound resources
         c.glBindVertexArray(0);

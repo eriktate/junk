@@ -85,7 +85,6 @@ pub const Manager = struct {
             spr.id = entity.id;
             for (self.sprites.items) |existing, idx| {
                 if (existing == null) {
-                    std.debug.print("Adding sprite to empty slot: {d}\n", .{spr.id});
                     entity.sprite_idx = idx;
                     self.sprites.items[idx] = spr;
                     break;
@@ -127,7 +126,6 @@ pub const Manager = struct {
             if (entity.sprite_idx == null) {
                 entity.sprite_idx = self.sprites.items.len;
                 spr.id = entity.id;
-                std.debug.print("Adding sprite to new slot: {d}\n", .{spr.id});
                 try self.sprites.append(spr);
             }
 
@@ -328,10 +326,9 @@ pub const Manager = struct {
 
     // mostly for the level editor
     pub fn getAtPos(self: Manager, pos: Vec3) ?usize {
-        for (self.sprites.items) |opt_spr, idx| {
+        for (self.sprites.items) |opt_spr| {
             if (opt_spr) |spr| {
                 if (spr.pos.eq(pos)) {
-                    std.debug.print("Found sprite at idx: {d}\n", .{idx});
                     return spr.id;
                 }
             }

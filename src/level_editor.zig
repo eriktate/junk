@@ -49,7 +49,6 @@ pub const LevelEditor = struct {
     }
 
     pub fn selectTile(self: *LevelEditor, pos: Vec3) void {
-        std.debug.print("Selecting tile: {d}, {d}\n", .{ pos.x, pos.y });
         self.selected_tile = Vec2.init(@floatToInt(u32, pos.x), @floatToInt(u32, pos.y));
     }
 
@@ -67,7 +66,6 @@ pub const LevelEditor = struct {
             switch (spr.show) {
                 ShowTag.tex => |tex| {
                     if (!tex.eq(self.getSelectedTileTex())) {
-                        std.debug.print("Overwriting tile {d}, {d} to {d}, {d}\n", .{ self.selected_tile.x, self.selected_tile.y, pos.x, pos.y });
                         self.manager.remove(id);
                         _ = try self.manager.add(tile, null);
                     }
@@ -77,13 +75,11 @@ pub const LevelEditor = struct {
             }
         }
 
-        const id = try self.manager.add(tile, null);
-        std.debug.print("Adding tile {d}, {d} to {d}, {d} with id {d}\n", .{ self.selected_tile.x, self.selected_tile.y, pos.x, pos.y, id });
+        _ = try self.manager.add(tile, null);
     }
 
     pub fn removeTile(self: LevelEditor, pos: Vec3) void {
         if (self.manager.getAtPos(pos)) |id| {
-            std.debug.print("Removing entity: {d}\n", .{id});
             self.manager.remove(id);
         }
     }
@@ -151,12 +147,12 @@ pub const LevelEditor = struct {
     pub fn toggleMode(self: *LevelEditor) void {
         if (self.mode == Mode.Tile) {
             self.mode = Mode.BBox;
-            std.debug.print("Mode: {any}\n", .{self.mode});
+            std.debug.print("{any}\n", .{self.mode});
             return;
         }
 
         self.mode = Mode.Tile;
-        std.debug.print("Mode: {any}\n", .{self.mode});
+        std.debug.print("{any}\n", .{self.mode});
     }
 
     pub fn tick(self: *LevelEditor) !void {
@@ -286,7 +282,7 @@ pub const LevelEditor = struct {
 
         try self.serialize(&fb);
         try file.writeAll(fb.getWritten());
-        std.debug.print("Saved level!\n", .{});
+        std.debug.print("Level saved!\n", .{});
     }
 
     pub fn loadLevel(self: LevelEditor, fname: []const u8) !void {
