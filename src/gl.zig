@@ -6,16 +6,18 @@ const Vec2 = lag.Vec2(u32);
 pub const Vertex = struct {
     pos: Vec3,
     tex_pos: Vec2,
+    tex_id: u32,
 
-    pub fn init(pos: Vec3, tex_pos: Vec2) Vertex {
+    pub fn init(pos: Vec3, tex_pos: Vec2, tex_id: u32) Vertex {
         return Vertex{
             .pos = pos,
             .tex_pos = tex_pos,
+            .tex_id = tex_id,
         };
     }
 
     pub fn eq(self: Vertex, other: Vertex) bool {
-        return self.pos.eq(other.pos) and self.tex_pos.eq(other.tex_pos);
+        return self.pos.eq(other.pos) and self.tex_pos.eq(other.tex_pos) and self.tex_id == other.tex_id;
     }
 };
 
@@ -27,10 +29,10 @@ pub const Quad = struct {
 
     pub fn zero() Quad {
         return Quad{
-            .tr = Vertex.init(Vec3.zero(), Vec2.zero()),
-            .tl = Vertex.init(Vec3.zero(), Vec2.zero()),
-            .bl = Vertex.init(Vec3.zero(), Vec2.zero()),
-            .br = Vertex.init(Vec3.zero(), Vec2.zero()),
+            .tr = Vertex.init(Vec3.zero(), Vec2.zero(), 0),
+            .tl = Vertex.init(Vec3.zero(), Vec2.zero(), 0),
+            .bl = Vertex.init(Vec3.zero(), Vec2.zero(), 0),
+            .br = Vertex.init(Vec3.zero(), Vec2.zero(), 0),
         };
     }
 

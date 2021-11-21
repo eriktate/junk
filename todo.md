@@ -1,8 +1,14 @@
-# TODO next stream
-- [ ] Look at switching to orphanage serializer
+# TODO 11/20/21
+- [x] Telly walk/run animation
+- [x] Telly jump/fall animation
+- [x] Improve animation definitions
+- [x] Basic animation state management
 - [ ] Use multiple textures
+- [ ] Look at switching to orphanage serializer
 - [ ] Matrices!
 - [ ] Orthographic projection matrix
+- [ ] Create the concept of an Atlas
+- [ ] Refactor animations to use an atlas
 
 # TODO 11/18/21
 - [x] Basic level editor

@@ -46,8 +46,8 @@ pub const Debug = struct {
     }
 
     pub fn drawLine(self: *Debug, start: Vec3, end: Vec3) !void {
-        const start_vert = Vertex.init(start, Vec2.zero());
-        const end_vert = Vertex.init(end, Vec2.zero());
+        const start_vert = Vertex.init(start, Vec2.zero(), 0);
+        const end_vert = Vertex.init(end, Vec2.zero(), 0);
         try self.vertices.append(start_vert);
         try self.vertices.append(end_vert);
     }

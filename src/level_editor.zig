@@ -9,6 +9,7 @@ const BBox = @import("bbox.zig");
 const fixedBufferStream = std.io.fixedBufferStream;
 const Allocator = std.mem.Allocator;
 const Sprite = sprite.Sprite;
+const Tex = sprite.Tex;
 const ShowTag = sprite.ShowTag;
 const Vec2 = lag.Vec2(u32);
 const Vec3 = lag.Vec3(f32);
@@ -52,13 +53,20 @@ pub const LevelEditor = struct {
         self.selected_tile = Vec2.init(@floatToInt(u32, pos.x), @floatToInt(u32, pos.y));
     }
 
+    fn getSelectedTileTex(self: LevelEditor) Tex {
+        return Tex.init(
+            self.active_tileset.id,
+            self.selected_tile,
+        );
+    }
+
     pub fn addTile(self: LevelEditor, pos: Vec3) !void {
-        const tile = Sprite.init(pos, 16, 16, self.selected_tile);
+        const tile = Sprite.init(pos, 16, 16, self.getSelectedTileTex());
         if (self.manager.getAtPos(pos)) |id| {
             const spr = self.manager.getSprite(id).?;
             switch (spr.show) {
                 ShowTag.tex => |tex| {
-                    if (!tex.eq(self.selected_tile)) {
+                    if (!tex.eq(self.getSelectedTileTex())) {
                         std.debug.print("Overwriting tile {d}, {d} to {d}, {d}\n", .{ self.selected_tile.x, self.selected_tile.y, pos.x, pos.y });
                         self.manager.remove(id);
                         _ = try self.manager.add(tile, null);
@@ -202,7 +210,7 @@ pub const LevelEditor = struct {
                 const tex = spr.getTex();
                 try writer.writeIntLittle(u32, @floatToInt(u32, spr.pos.x));
                 try writer.writeIntLittle(u32, @floatToInt(u32, spr.pos.y));
-                try writer.writeIntLittle(u32, 0);
+                try writer.writeIntLittle(u32, self.active_tileset.id);
                 try writer.writeIntLittle(u32, tex.x);
                 try writer.writeIntLittle(u32, tex.y);
 
@@ -240,14 +248,12 @@ pub const LevelEditor = struct {
             pos.x = @intToFloat(f32, try reader.readIntLittle(u32));
             pos.y = @intToFloat(f32, try reader.readIntLittle(u32));
 
-            // TODO (etate): res holds the tileset ID here. Need to do
-            // something with it
-            _ = try reader.readIntLittle(u32);
+            const tex_id = try reader.readIntLittle(u32);
 
             tex_coord.x = try reader.readIntLittle(u32);
             tex_coord.y = try reader.readIntLittle(u32);
 
-            var tile = Sprite.init(pos, 16, 16, tex_coord);
+            var tile = Sprite.init(pos, 16, 16, Tex.init(tex_id, tex_coord));
             _ = self.manager.add(tile, null) catch unreachable;
 
             idx += 1;
