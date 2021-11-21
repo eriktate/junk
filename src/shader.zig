@@ -33,66 +33,65 @@ fn srcCast(src: []const u8) [*c]const [*c]const u8 {
     return @ptrCast([*c]const [*c]const u8, &src);
 }
 
-pub const Shader = struct {
-    id: u32,
+const Shader = @This();
+id: u32,
 
-    pub fn init(vert_src: []const u8, frag_src: []const u8) anyerror!Shader {
-        var success: i32 = 0;
-        var log_buf: [512]u8 = undefined;
-        var log = @ptrCast([*c]u8, &log_buf);
+pub fn init(vert_src: []const u8, frag_src: []const u8) anyerror!Shader {
+    var success: i32 = 0;
+    var log_buf: [512]u8 = undefined;
+    var log = @ptrCast([*c]u8, &log_buf);
 
-        // load and compile the vertex shader
-        var vert = c.glCreateShader(c.GL_VERTEX_SHADER);
-        c.glShaderSource(vert, 1, srcCast(vert_src), null);
-        c.glCompileShader(vert);
-        c.glGetShaderiv(vert, c.GL_COMPILE_STATUS, &success);
-        if (success != 1) {
-            c.glGetShaderInfoLog(vert, 512, null, log);
-            warn("Shader Log: {s}", .{log});
-            return ShaderError.VertexCompilationFailed;
-        }
-
-        // load and compile the fragment shader
-        var frag = c.glCreateShader(c.GL_FRAGMENT_SHADER);
-        c.glShaderSource(frag, 1, srcCast(frag_src), null);
-        c.glCompileShader(frag);
-        c.glGetShaderiv(frag, c.GL_COMPILE_STATUS, &success);
-        if (success != 1) {
-            c.glGetShaderInfoLog(frag, 512, null, log);
-            warn("Shader Log: {s}", .{log});
-            return ShaderError.FragmentCompilationFailed;
-        }
-
-        const program = c.glCreateProgram();
-        c.glAttachShader(program, vert);
-        c.glAttachShader(program, frag);
-        c.glLinkProgram(program);
-        c.glGetProgramiv(program, c.GL_LINK_STATUS, &success);
-        if (success != 1) {
-            c.glGetProgramInfoLog(program, 512, null, log);
-            warn("Shader Log: {s}", .{log});
-            return ShaderError.LinkingFailed;
-        }
-
-        // shaders are linked to the program now, don't need to keep them anymore
-        c.glDeleteShader(vert);
-        c.glDeleteShader(frag);
-
-        return Shader{ .id = program };
+    // load and compile the vertex shader
+    var vert = c.glCreateShader(c.GL_VERTEX_SHADER);
+    c.glShaderSource(vert, 1, srcCast(vert_src), null);
+    c.glCompileShader(vert);
+    c.glGetShaderiv(vert, c.GL_COMPILE_STATUS, &success);
+    if (success != 1) {
+        c.glGetShaderInfoLog(vert, 512, null, log);
+        warn("Shader Log: {s}", .{log});
+        return ShaderError.VertexCompilationFailed;
     }
 
-    pub fn use(self: Shader) void {
-        c.glUseProgram(self.id);
+    // load and compile the fragment shader
+    var frag = c.glCreateShader(c.GL_FRAGMENT_SHADER);
+    c.glShaderSource(frag, 1, srcCast(frag_src), null);
+    c.glCompileShader(frag);
+    c.glGetShaderiv(frag, c.GL_COMPILE_STATUS, &success);
+    if (success != 1) {
+        c.glGetShaderInfoLog(frag, 512, null, log);
+        warn("Shader Log: {s}", .{log});
+        return ShaderError.FragmentCompilationFailed;
     }
 
-    // TODO (etate): Make this generic?
-    pub fn setInt(self: Shader, name: [*]const u8, val: i32) void {
-        self.use();
-        c.glUniform1i(c.glGetUniformLocation(self.id, name), val);
+    const program = c.glCreateProgram();
+    c.glAttachShader(program, vert);
+    c.glAttachShader(program, frag);
+    c.glLinkProgram(program);
+    c.glGetProgramiv(program, c.GL_LINK_STATUS, &success);
+    if (success != 1) {
+        c.glGetProgramInfoLog(program, 512, null, log);
+        warn("Shader Log: {s}", .{log});
+        return ShaderError.LinkingFailed;
     }
 
-    pub fn setUint(self: Shader, name: [*]const u8, val: u32) void {
-        self.use();
-        c.glUniform1ui(c.glGetUniformLocation(self.id, name), val);
-    }
-};
+    // shaders are linked to the program now, don't need to keep them anymore
+    c.glDeleteShader(vert);
+    c.glDeleteShader(frag);
+
+    return Shader{ .id = program };
+}
+
+pub fn use(self: Shader) void {
+    c.glUseProgram(self.id);
+}
+
+// TODO (etate): Make this generic?
+pub fn setInt(self: Shader, name: [*]const u8, val: i32) void {
+    self.use();
+    c.glUniform1i(c.glGetUniformLocation(self.id, name), val);
+}
+
+pub fn setUint(self: Shader, name: [*]const u8, val: u32) void {
+    self.use();
+    c.glUniform1ui(c.glGetUniformLocation(self.id, name), val);
+}

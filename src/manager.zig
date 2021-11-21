@@ -6,7 +6,7 @@ const lag = @import("lag.zig");
 const Sprite = @import("sprite.zig").Sprite;
 const Quad = @import("gl.zig").Quad;
 const BBox = @import("bbox.zig");
-const Debug = @import("debug.zig").Debug;
+const Debug = @import("debug.zig");
 const Vec3 = lag.Vec3(f32);
 const Vec2 = lag.Vec2(u32);
 

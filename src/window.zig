@@ -8,62 +8,59 @@ const WindowError = error{
     CreateFailed,
 };
 
-const Event = struct {};
+const Window = @This();
+width: u16,
+height: u16,
+title: []const u8,
+win: *c.GLFWwindow,
 
-pub const Window = struct {
-    width: u16,
-    height: u16,
-    title: []const u8,
-    win: *c.GLFWwindow,
+pub fn init(width: u16, height: u16, title: [*:0]const u8) WindowError!Window {
+    var window = Window{
+        .width = width,
+        .height = height,
+        .title = std.mem.span(title),
+        .win = undefined,
+    };
 
-    pub fn init(width: u16, height: u16, title: [*:0]const u8) WindowError!Window {
-        var window = Window{
-            .width = width,
-            .height = height,
-            .title = std.mem.span(title),
-            .win = undefined,
-        };
-
-        if (c.glfwInit() != 1) {
-            return WindowError.InitFailed;
-        }
-
-        // window hints
-        c.glfwWindowHint(c.GLFW_CONTEXT_VERSION_MAJOR, 4);
-        c.glfwWindowHint(c.GLFW_CONTEXT_VERSION_MINOR, 5);
-        c.glfwWindowHint(c.GLFW_OPENGL_PROFILE, c.GLFW_OPENGL_CORE_PROFILE);
-        window.win = c.glfwCreateWindow(width, height, title, null, null) orelse return WindowError.CreateFailed;
-
-        c.glfwMakeContextCurrent(window.win);
-        c.glViewport(0, 0, width, height);
-
-        return window;
+    if (c.glfwInit() != 1) {
+        return WindowError.InitFailed;
     }
 
-    pub fn shouldClose(self: Window) bool {
-        const escape = c.glfwGetKey(self.win, c.GLFW_KEY_ESCAPE);
-        return escape == c.GLFW_PRESS;
-    }
+    // window hints
+    c.glfwWindowHint(c.GLFW_CONTEXT_VERSION_MAJOR, 4);
+    c.glfwWindowHint(c.GLFW_CONTEXT_VERSION_MINOR, 5);
+    c.glfwWindowHint(c.GLFW_OPENGL_PROFILE, c.GLFW_OPENGL_CORE_PROFILE);
+    window.win = c.glfwCreateWindow(width, height, title, null, null) orelse return WindowError.CreateFailed;
 
-    pub fn close(self: Window) void {
-        c.glfwDestroyWindow(self.win);
-        c.glfwTerminate();
-    }
+    c.glfwMakeContextCurrent(window.win);
+    c.glViewport(0, 0, width, height);
 
-    pub fn tick(self: Window) void {
-        c.glfwSwapBuffers(self.win);
-        c.glfwPollEvents();
-    }
+    return window;
+}
 
-    pub fn getKey(self: Window, code: i32) bool {
-        return c.glfwGetKey(self.win, code) == c.GLFW_PRESS;
-    }
+pub fn shouldClose(self: Window) bool {
+    const escape = c.glfwGetKey(self.win, c.GLFW_KEY_ESCAPE);
+    return escape == c.GLFW_PRESS;
+}
 
-    pub fn getMousePos(self: Window) Vec3 {
-        var mouse_x: f64 = undefined;
-        var mouse_y: f64 = undefined;
-        c.glfwGetCursorPos(self.win, &mouse_x, &mouse_y);
+pub fn close(self: Window) void {
+    c.glfwDestroyWindow(self.win);
+    c.glfwTerminate();
+}
 
-        return Vec3.init(@floatCast(f32, mouse_x), @floatCast(f32, mouse_y), 0);
-    }
-};
+pub fn tick(self: Window) void {
+    c.glfwSwapBuffers(self.win);
+    c.glfwPollEvents();
+}
+
+pub fn getKey(self: Window, code: i32) bool {
+    return c.glfwGetKey(self.win, code) == c.GLFW_PRESS;
+}
+
+pub fn getMousePos(self: Window) Vec3 {
+    var mouse_x: f64 = undefined;
+    var mouse_y: f64 = undefined;
+    c.glfwGetCursorPos(self.win, &mouse_x, &mouse_y);
+
+    return Vec3.init(@floatCast(f32, mouse_x), @floatCast(f32, mouse_y), 0);
+}
