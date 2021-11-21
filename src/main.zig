@@ -21,6 +21,7 @@ const Tex = sprite.Tex;
 const Sprite = sprite.Sprite;
 const print = std.debug.print;
 
+var win: Window = undefined;
 var level_editor: LevelEditor = undefined;
 var debug: Debug = undefined;
 
@@ -76,7 +77,7 @@ pub fn main() anyerror!void {
     defer arena.deinit();
     var alloc = &arena.allocator;
 
-    var win = try Window.init(640, 640, "junk -- float");
+    win = try Window.init(640, 640, "junk -- float");
     defer win.close();
 
     var mgr = try Manager.init(alloc, 500);
