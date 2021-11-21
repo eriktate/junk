@@ -212,7 +212,7 @@ pub const Manager = struct {
         }
     }
 
-    pub fn checkCollision(self: Manager, id: usize, pos: Vec3) bool {
+    pub fn checkCollision(self: Manager, id: usize, pos: Vec3) ?usize {
         var target = self.boxes.items[id].?;
         target.pos = pos;
 
@@ -223,16 +223,16 @@ pub const Manager = struct {
                 }
 
                 if (target.overlaps(box)) {
-                    return true;
+                    return box.id;
                 }
             }
         }
 
-        return false;
+        return null;
     }
 
-    pub fn checkCollisionRelative(self: Manager, id: usize, pos: Vec3) bool {
-        const target = self.getBox(id) orelse return false;
+    pub fn checkCollisionRelative(self: Manager, id: usize, pos: Vec3) ?usize {
+        const target = self.getBox(id) orelse return null;
         return self.checkCollision(id, target.pos.add(pos));
     }
 

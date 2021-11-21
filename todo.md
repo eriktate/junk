@@ -3,10 +3,10 @@
 	- [x] Make debug flag part of Debug struct.
 	- [x] Remove unnecessary prints
 	- [x] Make a 'global' Window to be used during callback fns.
-	- [ ] Leverage top level imports throughout
-	- [ ] Make active texture IDs predictable (maybe define them as enums?)
+	- [x] Leverage top level imports throughout
+	- [x] Refactor checkCollision and checkCollisionRelative to return an optional entity ID instead of a bool.
+	- [x] Make active texture IDs predictable (maybe define them as enums?)
 	- [ ] Move VAO generation and updating to the entity manager.
-	- [ ] Refactor checkCollision and checkCollisionRelative to return an optional entity ID instead of a bool.
 	- [ ] Add Atlas struct that can be derived from Texture (e.g. tex.makeAtlas()). Refactor Animations to use Atlases
 	- [ ] Look at switching to orphanage serializer.
 	- [ ] Make a Player struct?

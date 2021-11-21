@@ -19,6 +19,7 @@ const Vec2 = lag.Vec2(u32);
 const Animation = sprite.Animation;
 const Tex = sprite.Tex;
 const Sprite = sprite.Sprite;
+const Textures = Texture.Textures;
 const print = std.debug.print;
 
 var win: Window = undefined;
@@ -101,14 +102,14 @@ pub fn main() anyerror!void {
 
     debug = try Debug.init(alloc, 500, debug_shader);
     const telly_src = @embedFile("../assets/telly_atlas.png");
-    const telly_tex = try Texture.fromMemory(telly_src);
+    const telly_tex = try Texture.fromMemory(Textures.Telly, telly_src);
 
-    const tileset_src = @embedFile("../assets/wasteland.png");
-    const tileset_tex = try Texture.fromMemory(tileset_src);
+    const wasteland_src = @embedFile("../assets/wasteland.png");
+    const wasteland_tex = try Texture.fromMemory(Textures.Wasteland, wasteland_src);
     shader.setInt("tex0", 0);
     shader.setInt("tex1", 1);
 
-    level_editor = LevelEditor.init(&mgr, win, &debug, tileset_tex);
+    level_editor = LevelEditor.init(&mgr, win, &debug, wasteland_tex);
     _ = c.glfwSetMouseButtonCallback(win.win, mouseCallback);
     _ = c.glfwSetKeyCallback(win.win, keyCallback);
 
@@ -148,10 +149,10 @@ pub fn main() anyerror!void {
     telly_fall.frames = fall_frames[0..];
 
     const player_spr = Sprite.withAnim(Vec3.init(200 - 32, 200, 0), 16, 24, telly_idle);
-    const tileset_spr = Sprite.init(Vec3.init(0, 0, 0), tileset_tex.width, tileset_tex.height, Tex.init(tileset_tex.id, Vec2.init(0, 0)));
+    const wasteland_spr = Sprite.init(Vec3.init(0, 0, 0), wasteland_tex.width, wasteland_tex.height, Tex.init(wasteland_tex.id, Vec2.init(0, 0)));
 
     const player = try mgr.add(player_spr, player_spr.makeBBox());
-    _ = try mgr.add(tileset_spr, null);
+    _ = try mgr.add(wasteland_spr, null);
 
     var vao: u32 = undefined;
     c.glGenVertexArrays(1, &vao);
@@ -200,7 +201,7 @@ pub fn main() anyerror!void {
         delta = now - prev_time;
         prev_time = now;
 
-        const grounded = mgr.checkCollisionRelative(player, Vec3.init(0, 1, 0));
+        const grounded = mgr.checkCollisionRelative(player, Vec3.init(0, 1, 0)) != null;
         if (!grounded) {
             vspeed += @floatCast(f32, grav * delta);
             if (vspeed < 0) {
@@ -238,11 +239,11 @@ pub fn main() anyerror!void {
         }
 
         // check for collisions on each dimension (keeps things smooth and slide-y)
-        if (mgr.checkCollisionRelative(player, Vec3.init(move_vec.x, 0, 0))) {
+        if (mgr.checkCollisionRelative(player, Vec3.init(move_vec.x, 0, 0)) != null) {
             move_vec.x = 0;
         }
 
-        if (mgr.checkCollisionRelative(player, Vec3.init(0, move_vec.y, 0))) {
+        if (mgr.checkCollisionRelative(player, Vec3.init(0, move_vec.y, 0)) != null) {
             move_vec.y = 0;
             vspeed = 0;
         }
