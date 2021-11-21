@@ -1,19 +1,36 @@
+# TODO next stream
+- [ ] Cleanup/Refactor stream!
+	- [ ] Make debug flag part of Debug struct.
+	- [ ] Remove unnecessary prints
+	- [ ] Add Atlas struct that can be derived from Texture (e.g. tex.makeAtlas()). Refactor Animations to use Atlases
+	- [ ] Leverage top level imports throughout
+	- [ ] Make active texture IDs predictable (maybe define them as enums?)
+	- [ ] Make a 'global' Window to be used during callback fns.
+	- [ ] Move VAO generation and updating to the entity manager.
+	- [ ] Refactor checkCollision and checkCollisionRelative to return an optional entity ID instead of a bool.
+	- [ ] Look at switching to orphanage serializer.
+	- [ ] Make a Player struct?
+	- [ ] Handle animation state management in player struct.
+
+
 # TODO 11/20/21
 - [x] Telly walk/run animation
 - [x] Telly jump/fall animation
 - [x] Improve animation definitions
 - [x] Basic animation state management
-- [ ] Use multiple textures
+- [x] Use multiple textures
 - [ ] Look at switching to orphanage serializer
 - [ ] Matrices!
 - [ ] Orthographic projection matrix
 - [ ] Create the concept of an Atlas
 - [ ] Refactor animations to use an atlas
 
+
 # TODO 11/18/21
 - [x] Basic level editor
 	- [x] de/serialize level data
 	- [x] Save/load from file
+
 
 # TODO 11/16/21
 - [ ] Basic level editor
