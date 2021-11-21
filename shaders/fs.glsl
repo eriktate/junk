@@ -10,7 +10,7 @@ out vec4 frag_color;
 vec2 coord;
 
 void main() {
-	if (tex_id == 1) {
+	if (tex_id == 0) {
 		ivec2 tex_size = textureSize(tex0, 0);
 		coord = vec2(
 			tex_coord.x / tex_size.x,
@@ -19,7 +19,7 @@ void main() {
 		frag_color = texture(tex0, coord);
 	}
 
-	if (tex_id == 2) {
+	if (tex_id == 1) {
 		ivec2 tex_size = textureSize(tex1, 0);
 		coord = vec2(
 			tex_coord.x / tex_size.x,

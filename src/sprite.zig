@@ -8,38 +8,19 @@ const Vec3 = lag.Vec3(f32);
 const Vec2 = lag.Vec2(u32);
 const Quad = gl.Quad;
 const Vertex = gl.Vertex;
-
-pub const Tex = struct {
-    id: u32,
-    pos: Vec2,
-
-    pub fn init(id: u32, pos: Vec2) Tex {
-        return Tex{
-            .id = id,
-            .pos = pos,
-        };
-    }
-
-    pub fn eq(self: Tex, other: Tex) bool {
-        return self.id == other.id and self.pos.eq(other.pos);
-    }
-};
+const Origin = Texture.Origin;
 
 pub const Animation = struct {
     current_frame: f32,
     frame_rate: f32,
-    frame_width: u32,
-    frame_height: u32,
     texture: Texture,
     frames: []const Vec2, // slice of top-left-corner tex coords. width/height determined by the owning sprite
 
-    pub fn init(frame_rate: f32, frame_width: u32, frame_height: u32, texture: Texture, frames: []const Vec2) Animation {
+    pub fn init(frame_rate: f32, texture: Texture, frames: []const Vec2) Animation {
         return Animation{
             .current_frame = 0,
             .frame_rate = frame_rate,
             .frames = frames,
-            .frame_width = frame_width,
-            .frame_height = frame_height,
             .texture = texture,
         };
     }
@@ -52,27 +33,18 @@ pub const Animation = struct {
         }
     }
 
-    pub fn getFrame(self: Animation) Tex {
-        return Tex.init(self.texture.id, self.frames[@floatToInt(usize, self.current_frame)]);
-    }
-
-    pub fn fromGridPos(self: Animation, pos: Vec2) Vec2 {
-        const x_offset = 1 + pos.x;
-        const x_pos = pos.x * self.frame_width + x_offset;
-        const y_offset = 1 + pos.y;
-        const y_pos = pos.y * self.frame_height + y_offset;
-
-        return Vec2.init(x_pos, y_pos);
+    pub fn getFrame(self: Animation) Origin {
+        return Origin.init(self.texture.idx, self.frames[@floatToInt(usize, self.current_frame)]);
     }
 };
 
 pub const ShowTag = enum {
-    tex,
+    origin,
     anim,
 };
 
 pub const Show = union(ShowTag) {
-    tex: Tex,
+    origin: Origin,
     anim: Animation,
 };
 
@@ -86,7 +58,7 @@ pub const Sprite = struct {
     flipped: bool,
     show: Show,
 
-    pub fn init(pos: Vec3, width: u32, height: u32, tex: Tex) Sprite {
+    pub fn init(pos: Vec3, width: u32, height: u32, origin: Origin) Sprite {
         return Sprite{
             .id = 0,
             .pos = pos,
@@ -95,7 +67,7 @@ pub const Sprite = struct {
             .x_scale = 1,
             .y_scale = 1,
             .flipped = false,
-            .show = Show{ .tex = tex },
+            .show = Show{ .origin = origin },
         };
     }
 
@@ -112,8 +84,8 @@ pub const Sprite = struct {
         };
     }
 
-    pub fn setTexture(self: *Sprite, tex: Vec2) void {
-        self.show = Show{ .tex = tex };
+    pub fn setOrigin(self: *Sprite, origin: Origin) void {
+        self.show = Show{ .origin = origin };
     }
 
     pub fn setAnimation(self: *Sprite, anim: Animation) void {
@@ -127,17 +99,18 @@ pub const Sprite = struct {
     pub fn toQuad(self: Sprite) Quad {
         const f_width: f32 = @intToFloat(f32, self.width);
         const f_height: f32 = @intToFloat(f32, self.height);
-        var tex: Tex = undefined;
+        var tex: Origin = undefined;
         switch (self.show) {
-            ShowTag.tex => |t| tex = t,
+            ShowTag.origin => |o| tex = o,
             ShowTag.anim => |anim| tex = anim.getFrame(),
         }
 
+        const tex_idx = @enumToInt(tex.idx);
         var quad = Quad{
-            .tr = Vertex.init(Vec3.init(self.pos.x + f_width, self.pos.y, self.pos.z), Vec2.init(tex.pos.x + self.width, tex.pos.y), tex.id),
-            .tl = Vertex.init(self.pos, tex.pos, tex.id),
-            .bl = Vertex.init(Vec3.init(self.pos.x, self.pos.y + f_height, self.pos.z), Vec2.init(tex.pos.x, tex.pos.y + self.height), tex.id),
-            .br = Vertex.init(self.pos.add(Vec3.init(f_width, f_height, 0)), tex.pos.add(Vec2.init(self.width, self.height)), tex.id),
+            .tr = Vertex.init(Vec3.init(self.pos.x + f_width, self.pos.y, self.pos.z), Vec2.init(tex.pos.x + self.width, tex.pos.y), tex_idx),
+            .tl = Vertex.init(self.pos, tex.pos, tex_idx),
+            .bl = Vertex.init(Vec3.init(self.pos.x, self.pos.y + f_height, self.pos.z), Vec2.init(tex.pos.x, tex.pos.y + self.height), tex_idx),
+            .br = Vertex.init(self.pos.add(Vec3.init(f_width, f_height, 0)), tex.pos.add(Vec2.init(self.width, self.height)), tex_idx),
         };
 
         if (self.flipped) {
@@ -158,14 +131,14 @@ pub const Sprite = struct {
 
     pub fn tick(self: *Sprite, delta: f64) void {
         switch (self.show) {
-            ShowTag.tex => return,
+            ShowTag.origin => return,
             ShowTag.anim => |*anim| anim.tick(delta),
         }
     }
 
     pub fn getTex(self: Sprite) Vec2 {
         switch (self.show) {
-            ShowTag.tex => |tex| return tex.pos,
+            ShowTag.origin => |o| return o.pos,
             ShowTag.anim => |anim| return anim.getFrame().pos,
         }
     }

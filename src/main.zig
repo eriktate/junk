@@ -17,7 +17,7 @@ const Vertex = gl.Vertex;
 const Vec3 = lag.Vec3(f32);
 const Vec2 = lag.Vec2(u32);
 const Animation = sprite.Animation;
-const Tex = sprite.Tex;
+const Origin = Texture.Origin;
 const Sprite = sprite.Sprite;
 const Textures = Texture.Textures;
 const print = std.debug.print;
@@ -103,6 +103,7 @@ pub fn main() anyerror!void {
     debug = try Debug.init(alloc, 500, debug_shader);
     const telly_src = @embedFile("../assets/telly_atlas.png");
     const telly_tex = try Texture.fromMemory(Textures.Telly, telly_src);
+    const telly_atlas = telly_tex.makeAtlas(Vec2.init(1, 1), 16, 24, null, null);
 
     const wasteland_src = @embedFile("../assets/wasteland.png");
     const wasteland_tex = try Texture.fromMemory(Textures.Wasteland, wasteland_src);
@@ -113,43 +114,40 @@ pub fn main() anyerror!void {
     _ = c.glfwSetMouseButtonCallback(win.win, mouseCallback);
     _ = c.glfwSetKeyCallback(win.win, keyCallback);
 
-    var telly_idle = Animation.init(10, 16, 24, telly_tex, undefined);
-    var telly_run = Animation.init(7.5, 16, 24, telly_tex, undefined);
-    var telly_jump = Animation.init(10, 16, 24, telly_tex, undefined);
-    var telly_fall = Animation.init(10, 16, 24, telly_tex, undefined);
     const idle_frames = [_]Vec2{
-        telly_idle.fromGridPos(Vec2.init(0, 0)),
-        telly_idle.fromGridPos(Vec2.init(1, 0)),
-        telly_idle.fromGridPos(Vec2.init(2, 0)),
-        telly_idle.fromGridPos(Vec2.init(3, 0)),
-        telly_idle.fromGridPos(Vec2.init(4, 0)),
-        telly_idle.fromGridPos(Vec2.init(5, 0)),
+        telly_atlas.getFrame(Vec2.init(0, 0)).pos,
+        telly_atlas.getFrame(Vec2.init(1, 0)).pos,
+        telly_atlas.getFrame(Vec2.init(2, 0)).pos,
+        telly_atlas.getFrame(Vec2.init(3, 0)).pos,
+        telly_atlas.getFrame(Vec2.init(4, 0)).pos,
+        telly_atlas.getFrame(Vec2.init(5, 0)).pos,
     };
     const run_frames = [_]Vec2{
-        telly_idle.fromGridPos(Vec2.init(0, 1)),
-        telly_idle.fromGridPos(Vec2.init(1, 1)),
-        telly_idle.fromGridPos(Vec2.init(2, 1)),
-        telly_idle.fromGridPos(Vec2.init(3, 1)),
+        telly_atlas.getFrame(Vec2.init(0, 1)).pos,
+        telly_atlas.getFrame(Vec2.init(1, 1)).pos,
+        telly_atlas.getFrame(Vec2.init(2, 1)).pos,
+        telly_atlas.getFrame(Vec2.init(3, 1)).pos,
     };
     const jump_frames = [_]Vec2{
-        telly_idle.fromGridPos(Vec2.init(0, 2)),
-        telly_idle.fromGridPos(Vec2.init(1, 2)),
-        telly_idle.fromGridPos(Vec2.init(2, 2)),
-        telly_idle.fromGridPos(Vec2.init(3, 2)),
+        telly_atlas.getFrame(Vec2.init(0, 2)).pos,
+        telly_atlas.getFrame(Vec2.init(1, 2)).pos,
+        telly_atlas.getFrame(Vec2.init(2, 2)).pos,
+        telly_atlas.getFrame(Vec2.init(3, 2)).pos,
     };
     const fall_frames = [_]Vec2{
-        telly_idle.fromGridPos(Vec2.init(0, 3)),
-        telly_idle.fromGridPos(Vec2.init(1, 3)),
-        telly_idle.fromGridPos(Vec2.init(2, 3)),
-        telly_idle.fromGridPos(Vec2.init(3, 3)),
+        telly_atlas.getFrame(Vec2.init(0, 3)).pos,
+        telly_atlas.getFrame(Vec2.init(1, 3)).pos,
+        telly_atlas.getFrame(Vec2.init(2, 3)).pos,
+        telly_atlas.getFrame(Vec2.init(3, 3)).pos,
     };
-    telly_idle.frames = idle_frames[0..];
-    telly_run.frames = run_frames[0..];
-    telly_jump.frames = jump_frames[0..];
-    telly_fall.frames = fall_frames[0..];
+
+    var telly_idle = Animation.init(10, telly_tex, idle_frames[0..]);
+    var telly_run = Animation.init(7.5, telly_tex, run_frames[0..]);
+    var telly_jump = Animation.init(10, telly_tex, jump_frames[0..]);
+    var telly_fall = Animation.init(10, telly_tex, fall_frames[0..]);
 
     const player_spr = Sprite.withAnim(Vec3.init(200 - 32, 200, 0), 16, 24, telly_idle);
-    const wasteland_spr = Sprite.init(Vec3.init(0, 0, 0), wasteland_tex.width, wasteland_tex.height, Tex.init(wasteland_tex.id, Vec2.init(0, 0)));
+    const wasteland_spr = Sprite.init(Vec3.init(0, 0, 0), wasteland_tex.width, wasteland_tex.height, Origin.init(wasteland_tex.idx, Vec2.init(0, 0)));
 
     const player = try mgr.add(player_spr, player_spr.makeBBox());
     _ = try mgr.add(wasteland_spr, null);

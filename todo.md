@@ -1,4 +1,8 @@
-# TODO next stream
+# TODO next steam
+- [ ] Load tileset on level load (so we can edit levels)
+
+
+# TODO 11/21/21
 - [ ] Cleanup/Refactor stream!
 	- [x] Make debug flag part of Debug struct.
 	- [x] Remove unnecessary prints
@@ -6,8 +10,10 @@
 	- [x] Leverage top level imports throughout
 	- [x] Refactor checkCollision and checkCollisionRelative to return an optional entity ID instead of a bool.
 	- [x] Make active texture IDs predictable (maybe define them as enums?)
+	- [x] Add Atlas struct that can be derived from Texture (e.g. tex.makeAtlas()). Refactor Animations to use Atlases
+	- [x] Fix duplicate naming in texture.zig
+	- [x] Look into naming of texture fields (id vs name)
 	- [ ] Move VAO generation and updating to the entity manager.
-	- [ ] Add Atlas struct that can be derived from Texture (e.g. tex.makeAtlas()). Refactor Animations to use Atlases
 	- [ ] Look at switching to orphanage serializer.
 	- [ ] Make a Player struct?
 	- [ ] Handle animation state management in player struct.

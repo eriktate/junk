@@ -9,7 +9,8 @@ const BBox = @import("bbox.zig");
 const fixedBufferStream = std.io.fixedBufferStream;
 const Allocator = std.mem.Allocator;
 const Sprite = sprite.Sprite;
-const Tex = sprite.Tex;
+const Origin = Texture.Origin;
+const Textures = Texture.Textures;
 const ShowTag = sprite.ShowTag;
 const Vec2 = lag.Vec2(u32);
 const Vec3 = lag.Vec3(f32);
@@ -52,20 +53,20 @@ pub const LevelEditor = struct {
         self.selected_tile = Vec2.init(@floatToInt(u32, pos.x), @floatToInt(u32, pos.y));
     }
 
-    fn getSelectedTileTex(self: LevelEditor) Tex {
-        return Tex.init(
-            self.active_tileset.id,
+    fn getSelectedTileOrigin(self: LevelEditor) Origin {
+        return Origin.init(
+            self.active_tileset.idx,
             self.selected_tile,
         );
     }
 
     pub fn addTile(self: LevelEditor, pos: Vec3) !void {
-        const tile = Sprite.init(pos, 16, 16, self.getSelectedTileTex());
+        const tile = Sprite.init(pos, 16, 16, self.getSelectedTileOrigin());
         if (self.manager.getAtPos(pos)) |id| {
             const spr = self.manager.getSprite(id).?;
             switch (spr.show) {
-                ShowTag.tex => |tex| {
-                    if (!tex.eq(self.getSelectedTileTex())) {
+                ShowTag.origin => |origin| {
+                    if (!origin.eq(self.getSelectedTileOrigin())) {
                         self.manager.remove(id);
                         _ = try self.manager.add(tile, null);
                     }
@@ -206,7 +207,7 @@ pub const LevelEditor = struct {
                 const tex = spr.getTex();
                 try writer.writeIntLittle(u32, @floatToInt(u32, spr.pos.x));
                 try writer.writeIntLittle(u32, @floatToInt(u32, spr.pos.y));
-                try writer.writeIntLittle(u32, self.active_tileset.id);
+                try writer.writeIntLittle(u32, @enumToInt(self.active_tileset.idx));
                 try writer.writeIntLittle(u32, tex.x);
                 try writer.writeIntLittle(u32, tex.y);
 
@@ -244,12 +245,12 @@ pub const LevelEditor = struct {
             pos.x = @intToFloat(f32, try reader.readIntLittle(u32));
             pos.y = @intToFloat(f32, try reader.readIntLittle(u32));
 
-            const tex_id = try reader.readIntLittle(u32);
+            const tex_idx = try reader.readIntLittle(u32);
 
             tex_coord.x = try reader.readIntLittle(u32);
             tex_coord.y = try reader.readIntLittle(u32);
 
-            var tile = Sprite.init(pos, 16, 16, Tex.init(tex_id, tex_coord));
+            var tile = Sprite.init(pos, 16, 16, Origin.init(@intToEnum(Textures, tex_idx), tex_coord));
             _ = self.manager.add(tile, null) catch unreachable;
 
             idx += 1;
