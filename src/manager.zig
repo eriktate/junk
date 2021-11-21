@@ -182,18 +182,34 @@ pub const Manager = struct {
     // clears everything from the entity manager
     pub fn clear(self: Manager) void {
         for (self.entities.items) |_, idx| {
+            if (idx == 0) {
+                // skip player
+                continue;
+            }
             self.entities.items[idx] = null;
         }
 
         for (self.sprites.items) |_, idx| {
+            if (idx == 0) {
+                // skip player
+                continue;
+            }
             self.sprites.items[idx] = null;
         }
 
         for (self.boxes.items) |_, idx| {
+            if (idx == 0) {
+                // skip player
+                continue;
+            }
             self.boxes.items[idx] = null;
         }
 
         for (self.quads.items) |_, idx| {
+            if (idx == 0) {
+                // skip player
+                continue;
+            }
             self.quads.items[idx] = Quad.zero();
         }
     }

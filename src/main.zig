@@ -22,6 +22,7 @@ const Sprite = sprite.Sprite;
 const print = std.debug.print;
 
 var level_editor: LevelEditor = undefined;
+var debugFlag: bool = true;
 
 const PlayerAnim = enum {
     Idle,
@@ -63,6 +64,10 @@ export fn keyCallback(_: ?*c.GLFWwindow, key: c_int, _: c_int, action: c_int, _:
 
     if (key == c.GLFW_KEY_L and action == c.GLFW_PRESS) {
         level_editor.loadLevel("test.lv") catch unreachable;
+    }
+
+    if (key == c.GLFW_KEY_SEMICOLON and action == c.GLFW_PRESS) {
+        debugFlag = !debugFlag;
     }
 }
 
@@ -276,7 +281,9 @@ pub fn main() anyerror!void {
         const cursor_pos = level_editor.getCursorPos();
         try debug.drawLine(cursor_pos.add(Vec3.init(0, 0, 0)), cursor_pos.add(Vec3.init(16, 0, 0)));
         try debug.drawLine(cursor_pos.add(Vec3.init(0, 0, 0)), cursor_pos.add(Vec3.init(0, 16, 0)));
-        debug.draw();
+        if (debugFlag) {
+            debug.draw();
+        }
 
         // reset bound resources
         c.glBindVertexArray(0);
