@@ -1,5 +1,10 @@
 # TODO next steam
 - [ ] Load tileset on level load (so we can edit levels)
+- [ ] Make a Player struct
+	- [ ] Handle animation state
+	- [ ] Handle input states
+	- [ ]
+- [ ] New lab tileset
 
 
 # TODO 11/21/21
