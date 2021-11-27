@@ -7,19 +7,24 @@ const Shader = @import("shader.zig");
 const Texture = @import("texture.zig");
 const sprite = @import("sprite.zig");
 const Controller = @import("controller.zig");
-const BBox = @import("bbox.zig").BBox;
-const Manager = @import("manager.zig").Manager;
+const BBox = @import("bbox.zig");
+const manager = @import("manager.zig");
 const Debug = @import("debug.zig");
 const LevelEditor = @import("level_editor.zig").LevelEditor;
+const Player = @import("player.zig");
+const Camera = @import("camera.zig");
 
 const Quad = gl.Quad;
 const Vertex = gl.Vertex;
 const Vec3 = lag.Vec3(f32);
 const Vec2 = lag.Vec2(u32);
+const Mat4 = lag.Mat4;
 const Animation = sprite.Animation;
 const Origin = Texture.Origin;
 const Sprite = sprite.Sprite;
 const Textures = Texture.Textures;
+const Manager = manager.Manager;
+const EntityKind = manager.EntityKind;
 const print = std.debug.print;
 
 var win: Window = undefined;
@@ -93,10 +98,12 @@ pub fn main() anyerror!void {
     const debug_fs_src = @embedFile("../shaders/debug_fs.glsl");
     const debug_shader = try Shader.init(debug_vs_src, debug_fs_src);
 
+    var camera = Camera.init(&win, Vec3.init(0, 0, 0), lag.Vec2(f32).init(32, 32), 320, 320);
     // set screen resolution uniforms for use in coordinate mapping
     // modifying this affects the "zoom" level
     shader.setUint("width", win.width);
     shader.setUint("height", win.height);
+    shader.setMat4("projection", camera.projection());
     debug_shader.setUint("width", win.width);
     debug_shader.setUint("height", win.height);
 
@@ -105,12 +112,15 @@ pub fn main() anyerror!void {
     const telly_tex = try Texture.fromMemory(Textures.Telly, telly_src);
     const telly_atlas = telly_tex.makeAtlas(Vec2.init(1, 1), 16, 24, null, null);
 
-    const wasteland_src = @embedFile("../assets/wasteland.png");
-    const wasteland_tex = try Texture.fromMemory(Textures.Wasteland, wasteland_src);
+    // const wasteland_src = @embedFile("../assets/wasteland.png");
+    // const wasteland_tex = try Texture.fromMemory(Textures.Wasteland, wasteland_src);
+    const lab_src = @embedFile("../assets/lab.png");
+    const lab_tex = try Texture.fromMemory(Textures.Lab, lab_src);
     shader.setInt("tex0", 0);
     shader.setInt("tex1", 1);
+    shader.setInt("tex2", 2);
 
-    level_editor = LevelEditor.init(&mgr, win, &debug, wasteland_tex);
+    level_editor = LevelEditor.init(&mgr, win, &debug, lab_tex);
     _ = c.glfwSetMouseButtonCallback(win.win, mouseCallback);
     _ = c.glfwSetKeyCallback(win.win, keyCallback);
 
@@ -147,11 +157,13 @@ pub fn main() anyerror!void {
     var telly_fall = Animation.init(10, telly_tex, fall_frames[0..]);
 
     const player_spr = Sprite.withAnim(Vec3.init(200 - 32, 200, 0), 16, 24, telly_idle);
-    const wasteland_spr = Sprite.init(Vec3.init(0, 0, 0), wasteland_tex.width, wasteland_tex.height, Origin.init(wasteland_tex.idx, Vec2.init(0, 0)));
+    // const wasteland_spr = Sprite.init(Vec3.init(0, 0, 0), wasteland_tex.width, wasteland_tex.height, Origin.init(wasteland_tex.idx, Vec2.init(0, 0)));
+    const lab_spr = Sprite.init(Vec3.init(0, 0, 0), lab_tex.width, lab_tex.height, Origin.init(lab_tex.idx, Vec2.init(0, 0)));
 
-    const player = try mgr.add(player_spr, player_spr.makeBBox());
-    _ = try mgr.add(wasteland_spr, null);
+    const player_id = try mgr.add(EntityKind.Player, player_spr, BBox.init(player_spr.pos, 7, 14).withOffset(Vec3.init(4, 9, 0)));
+    _ = try mgr.add(EntityKind.Decor, lab_spr, null);
 
+    var player = Player.init(player_id, &mgr, telly_idle, telly_run, telly_jump, telly_fall);
     var vao: u32 = undefined;
     c.glGenVertexArrays(1, &vao);
     c.glBindVertexArray(vao);
@@ -185,83 +197,20 @@ pub fn main() anyerror!void {
     var prev_time: f64 = now;
     var delta: f64 = 0;
 
-    const grav: f64 = 3;
-    var vspeed: f32 = 0;
-
-    var player_sprite = mgr.getMutSprite(player).?;
-    var prev_anim = PlayerAnim.Idle;
-    var current_anim = PlayerAnim.Idle;
     while (!win.shouldClose()) {
-        current_anim = PlayerAnim.Idle;
-
         // timings
         now = c.glfwGetTime();
         delta = now - prev_time;
         prev_time = now;
 
-        const grounded = mgr.checkCollisionRelative(player, Vec3.init(0, 1, 0)) != null;
-        if (!grounded) {
-            vspeed += @floatCast(f32, grav * delta);
-            if (vspeed < 0) {
-                current_anim = PlayerAnim.Jumping;
-            } else {
-                current_anim = PlayerAnim.Falling;
-            }
-        }
-
-        var move_vec = Vec3.init(0, vspeed, 0);
-
-        // controll stuff
-        if (ctrl.getRight()) {
-            player_sprite.setFlipped(false);
-            if (grounded) {
-                current_anim = PlayerAnim.Running;
-            }
-
-            move_vec.x += 0.5;
-        }
-
-        if (ctrl.getLeft()) {
-            player_sprite.setFlipped(true);
-            if (grounded) {
-                current_anim = PlayerAnim.Running;
-            }
-
-            move_vec.x -= 0.5;
-        }
-
-        if (ctrl.getJump()) {
-            if (grounded) {
-                vspeed = -1;
-            }
-        }
-
-        // check for collisions on each dimension (keeps things smooth and slide-y)
-        if (mgr.checkCollisionRelative(player, Vec3.init(move_vec.x, 0, 0)) != null) {
-            move_vec.x = 0;
-        }
-
-        if (mgr.checkCollisionRelative(player, Vec3.init(0, move_vec.y, 0)) != null) {
-            move_vec.y = 0;
-            vspeed = 0;
-        }
-
-        _ = try mgr.move(player, move_vec);
-
-        // player animations
-        if (prev_anim != current_anim) {
-            switch (current_anim) {
-                PlayerAnim.Idle => player_sprite.setAnimation(telly_idle),
-                PlayerAnim.Running => player_sprite.setAnimation(telly_run),
-                PlayerAnim.Jumping => player_sprite.setAnimation(telly_jump),
-                PlayerAnim.Falling => player_sprite.setAnimation(telly_fall),
-            }
-            prev_anim = current_anim;
-        }
-
         shader.use();
+        // player tick _must_ come before manager tick because the
+        // player's sprite may be modified
+        try player.tick(ctrl, delta);
         mgr.tick(delta);
         try level_editor.tick();
+        camera.setTarget(mgr.getSprite(player.id).?.pos);
+        shader.setMat4("projection", camera.projection());
         gl.clear();
         c.glBindVertexArray(vao);
         c.glBindBuffer(c.GL_ARRAY_BUFFER, vbo);

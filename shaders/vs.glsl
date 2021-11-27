@@ -5,6 +5,7 @@ layout (location = 2) in uint in_tex_id;
 
 uniform uint width;
 uniform uint height;
+uniform mat4 projection;
 
 out uint tex_id;
 out vec2 tex_coord;
@@ -19,7 +20,7 @@ void main() {
 		in_pos.z
 	);
 
-	gl_Position = vec4(pos, 1.0);
+	gl_Position = projection * vec4(pos, 1.0);
 	tex_coord = in_tex_coord;
 	tex_id = in_tex_id;
 }

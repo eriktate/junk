@@ -1,8 +1,9 @@
 const std = @import("std");
+const c = @import("c.zig");
+const Mat4 = @import("lag.zig").Mat4;
+
 const fs = std.fs;
 const warn = std.debug.warn;
-
-const c = @import("c.zig");
 
 const ShaderError = error{
     VertexCompilationFailed,
@@ -94,4 +95,9 @@ pub fn setInt(self: Shader, name: [*]const u8, val: i32) void {
 pub fn setUint(self: Shader, name: [*]const u8, val: u32) void {
     self.use();
     c.glUniform1ui(c.glGetUniformLocation(self.id, name), val);
+}
+
+pub fn setMat4(self: Shader, name: [*]const u8, val: Mat4) void {
+    self.use();
+    c.glUniformMatrix4fv(c.glGetUniformLocation(self.id, name), 1, c.GL_FALSE, &val.data);
 }

@@ -1,7 +1,7 @@
 const std = @import("std");
 const lag = @import("lag.zig");
 const sprite = @import("sprite.zig");
-const Manager = @import("manager.zig").Manager;
+const manager = @import("manager.zig");
 const Window = @import("window.zig");
 const Texture = @import("texture.zig");
 const Debug = @import("debug.zig");
@@ -12,6 +12,8 @@ const Sprite = sprite.Sprite;
 const Origin = Texture.Origin;
 const Textures = Texture.Textures;
 const ShowTag = sprite.ShowTag;
+const Manager = manager.Manager;
+const EntityKind = manager.EntityKind;
 const Vec2 = lag.Vec2(u32);
 const Vec3 = lag.Vec3(f32);
 
@@ -28,16 +30,16 @@ pub const LevelEditor = struct {
     rmb_pressed: bool,
     win: Window,
     active_bbox: ?*BBox,
-    manager: *Manager,
+    mgr: *Manager,
     debug: *Debug,
 
-    pub fn init(manager: *Manager, win: Window, debug: *Debug, active_tileset: Texture) LevelEditor {
+    pub fn init(mgr: *Manager, win: Window, debug: *Debug, active_tileset: Texture) LevelEditor {
         return LevelEditor{
             .active_tileset = active_tileset,
             .selected_tile = Vec2.zero(),
             .lmb_pressed = false,
             .rmb_pressed = false,
-            .manager = manager,
+            .mgr = mgr,
             .mode = Mode.BBox,
             .active_bbox = null,
             .win = win,
@@ -62,13 +64,13 @@ pub const LevelEditor = struct {
 
     pub fn addTile(self: LevelEditor, pos: Vec3) !void {
         const tile = Sprite.init(pos, 16, 16, self.getSelectedTileOrigin());
-        if (self.manager.getAtPos(pos)) |id| {
-            const spr = self.manager.getSprite(id).?;
+        if (self.mgr.getAtPos(pos)) |id| {
+            const spr = self.mgr.getSprite(id).?;
             switch (spr.show) {
                 ShowTag.origin => |origin| {
                     if (!origin.eq(self.getSelectedTileOrigin())) {
-                        self.manager.remove(id);
-                        _ = try self.manager.add(tile, null);
+                        self.mgr.remove(id);
+                        _ = try self.mgr.add(EntityKind.Decor, tile, null);
                     }
                     return;
                 },
@@ -76,12 +78,12 @@ pub const LevelEditor = struct {
             }
         }
 
-        _ = try self.manager.add(tile, null);
+        _ = try self.mgr.add(EntityKind.Decor, tile, null);
     }
 
     pub fn removeTile(self: LevelEditor, pos: Vec3) void {
-        if (self.manager.getAtPos(pos)) |id| {
-            self.manager.remove(id);
+        if (self.mgr.getAtPos(pos)) |id| {
+            self.mgr.remove(id);
         }
     }
 
@@ -110,16 +112,16 @@ pub const LevelEditor = struct {
 
         if (self.mode == Mode.BBox) {
             if (self.lmb_pressed) {
-                const box = BBox.init(0, cursor_pos, 16, 16);
-                const id = self.manager.add(null, box) catch unreachable;
-                self.active_bbox = self.manager.getMutBox(id).?;
+                const box = BBox.init(cursor_pos, 16, 16);
+                const id = self.mgr.add(EntityKind.Solid, null, box) catch unreachable;
+                self.active_bbox = self.mgr.getMutBox(id).?;
                 return;
             }
 
             // make sure we don't have negative width/height
             if (self.active_bbox) |bbox| {
                 if (bbox.width == 0 or bbox.height == 0) {
-                    self.manager.remove(bbox.id);
+                    self.mgr.remove(bbox.id);
                     self.active_bbox = null;
                 }
 
@@ -181,14 +183,14 @@ pub const LevelEditor = struct {
             }
 
             if (self.mode == Mode.BBox) {
-                const opt_id = self.manager.checkPos(mouse_pos);
+                const opt_id = self.mgr.checkPos(mouse_pos);
                 if (opt_id) |id| {
-                    self.manager.remove(id);
+                    self.mgr.remove(id);
                 }
             }
         }
 
-        try self.manager.drawBoxes(self.debug);
+        try self.mgr.drawBoxes(self.debug);
     }
 
     // TODO (etate): maybe rip all of this out and use the
@@ -202,7 +204,7 @@ pub const LevelEditor = struct {
         try writer.writeIntLittle(u32, 0);
         try writer.writeIntLittle(u32, 0);
 
-        for (self.manager.sprites.items) |opt_spr| {
+        for (self.mgr.sprites.items) |opt_spr| {
             if (opt_spr) |spr| {
                 const tex = spr.getTex();
                 try writer.writeIntLittle(u32, @floatToInt(u32, spr.pos.x));
@@ -215,7 +217,7 @@ pub const LevelEditor = struct {
             }
         }
 
-        for (self.manager.boxes.items) |opt_box| {
+        for (self.mgr.boxes.items) |opt_box| {
             if (opt_box) |bbox| {
                 try writer.writeIntLittle(u32, @floatToInt(u32, bbox.pos.x));
                 try writer.writeIntLittle(u32, @floatToInt(u32, bbox.pos.y));
@@ -234,7 +236,7 @@ pub const LevelEditor = struct {
     }
 
     pub fn deserialize(self: LevelEditor, reader: anytype) !void {
-        self.manager.clear();
+        self.mgr.clear();
         const tile_len = try reader.readIntLittle(u32);
         const box_len = try reader.readIntLittle(u32);
 
@@ -251,7 +253,7 @@ pub const LevelEditor = struct {
             tex_coord.y = try reader.readIntLittle(u32);
 
             var tile = Sprite.init(pos, 16, 16, Origin.init(@intToEnum(Textures, tex_idx), tex_coord));
-            _ = self.manager.add(tile, null) catch unreachable;
+            _ = self.mgr.add(EntityKind.Decor, tile, null) catch unreachable;
 
             idx += 1;
         }
@@ -265,8 +267,8 @@ pub const LevelEditor = struct {
             pos.y = @intToFloat(f32, try reader.readIntLittle(u32));
             width = try reader.readIntLittle(u32);
             height = try reader.readIntLittle(u32);
-            const box = BBox.init(0, pos, width, height);
-            _ = self.manager.add(null, box) catch unreachable;
+            const box = BBox.init(pos, width, height);
+            _ = self.mgr.add(EntityKind.Solid, null, box) catch unreachable;
             idx += 1;
         }
     }

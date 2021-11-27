@@ -4,6 +4,7 @@ flat in uint tex_id;
 in vec2 tex_coord;
 uniform sampler2D tex0;
 uniform sampler2D tex1;
+uniform sampler2D tex2;
 
 out vec4 frag_color;
 
@@ -26,5 +27,14 @@ void main() {
 			tex_coord.y / tex_size.y
 		);
 		frag_color = texture(tex1, coord);
+	}
+
+	if (tex_id == 2) {
+		ivec2 tex_size = textureSize(tex2, 0);
+		coord = vec2(
+			tex_coord.x / tex_size.x,
+			tex_coord.y / tex_size.y
+		);
+		frag_color = texture(tex2, coord);
 	}
 }

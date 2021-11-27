@@ -111,3 +111,29 @@ pub fn Vec3(comptime T: type) type {
         }
     };
 }
+
+pub const Mat4 = struct {
+    data: [16]f32,
+
+    pub fn identity() Mat4 {
+        return Mat4{
+            .data = [16]f32{
+                1, 0, 0, 0,
+                0, 1, 0, 0,
+                0, 0, 1, 0,
+                0, 0, 0, 1,
+            },
+        };
+    }
+
+    pub fn orthographic(t: f32, l: f32, b: f32, r: f32) Mat4 {
+        return Mat4{
+            .data = [16]f32{
+                2 / (r - l),          0,                    0, 0,
+                0,                    2 / (t - b),          0, 0,
+                0,                    0,                    1, 0,
+                -((r + l) / (r - l)), -((t + b) / (t - b)), 0, 1,
+            },
+        };
+    }
+};

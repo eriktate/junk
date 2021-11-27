@@ -11,6 +11,7 @@ const TexError = error{
 pub const Textures = enum(u32) {
     Telly,
     Wasteland,
+    Lab,
 };
 
 fn setActiveTexture(tex: Textures) void {

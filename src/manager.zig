@@ -14,15 +14,23 @@ const ManagerError = error{
     DoesNotExist,
 };
 
+pub const EntityKind = enum {
+    Player,
+    Decor,
+    Solid,
+};
+
 pub const Entity = struct {
     id: usize,
+    kind: EntityKind,
     sprite_idx: ?usize,
     box_idx: ?usize,
     quad_idx: ?usize,
 
-    pub fn init(id: usize, sprite_idx: ?usize, box_idx: ?usize, quad_idx: ?usize) Entity {
+    pub fn init(id: usize, kind: EntityKind, sprite_idx: ?usize, box_idx: ?usize, quad_idx: ?usize) Entity {
         return Entity{
             .id = id,
+            .kind = kind,
             .sprite_idx = sprite_idx,
             .box_idx = box_idx,
             .quad_idx = quad_idx,
@@ -66,8 +74,8 @@ pub const Manager = struct {
         };
     }
 
-    pub fn add(self: *Manager, opt_sprite: ?Sprite, opt_bbox: ?BBox) !usize {
-        var entity = &Entity.init(self.entities.items.len, null, null, null);
+    pub fn add(self: *Manager, kind: EntityKind, opt_sprite: ?Sprite, opt_bbox: ?BBox) !usize {
+        var entity = &Entity.init(self.entities.items.len, kind, null, null, null);
 
         // look for empty entity slots
         for (self.entities.items) |ent, idx| {
@@ -179,16 +187,20 @@ pub const Manager = struct {
 
     // clears everything from the entity manager
     pub fn clear(self: Manager) void {
-        for (self.entities.items) |_, idx| {
-            if (idx == 0) {
-                // skip player
-                continue;
+        var player_id: usize = 0;
+        for (self.entities.items) |opt_ent, idx| {
+            if (opt_ent) |ent| {
+                if (ent.kind == EntityKind.Player) {
+                    player_id = ent.id;
+                    continue;
+                }
             }
+
             self.entities.items[idx] = null;
         }
 
         for (self.sprites.items) |_, idx| {
-            if (idx == 0) {
+            if (idx == player_id) {
                 // skip player
                 continue;
             }
@@ -196,7 +208,7 @@ pub const Manager = struct {
         }
 
         for (self.boxes.items) |_, idx| {
-            if (idx == 0) {
+            if (idx == player_id) {
                 // skip player
                 continue;
             }
@@ -204,7 +216,7 @@ pub const Manager = struct {
         }
 
         for (self.quads.items) |_, idx| {
-            if (idx == 0) {
+            if (idx == player_id) {
                 // skip player
                 continue;
             }

@@ -1,10 +1,18 @@
-# TODO next steam
+# TODO next stream
+- [ ] Level editor zoom
 - [ ] Load tileset on level load (so we can edit levels)
-- [ ] Make a Player struct
-	- [ ] Handle animation state
-	- [ ] Handle input states
-	- [ ]
-- [ ] New lab tileset
+
+# TODO 11/27/21
+- [x] Make a Player struct
+	- [x] Handle animation state
+	- [x] Handle input states
+- [x] Camera system
+	- [x] Matrix struct
+	- [x] Camera struct
+	- [x] Orthographic projection matrix
+	- [x] Camera follows player with 2x zoom
+- [x] BBox offset/resize
+- [ ] Simple lab tileset
 
 
 # TODO 11/21/21
