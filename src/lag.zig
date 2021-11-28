@@ -12,10 +12,10 @@ pub fn VecMethods(comptime T: type, comptime fields_len: u8, comptime Self: type
 
         const Simd = std.meta.Vector(fields_len, T);
         pub inline fn asSimd(self: Self) Simd {
-            return @bitCast(Simd, self);
+            return @as(Simd, @bitCast(A, self));
         }
         pub inline fn fromSimd(v: Simd) Self {
-            return @bitCast(Self, v);
+            return @bitCast(Self, @as(A, v));
         }
 
         pub fn add(self: Self, other: Self) Self {
@@ -49,7 +49,7 @@ pub fn VecMethods(comptime T: type, comptime fields_len: u8, comptime Self: type
 }
 
 pub fn Vec2(comptime T: type) type {
-    return struct { // in case of problems, maybe try changing this to 'extern struct'
+    return extern struct {
         x: T,
         y: T,
 
@@ -65,14 +65,11 @@ pub fn Vec2(comptime T: type) type {
     };
 }
 
-// this implementation has an extra padding field to support simd conversions via @bitCast
 pub fn Vec3(comptime T: type) type {
-    return struct {
-        x: T, // x: T align(16), <-- compiles but results in runtime alignment error
+    return extern struct {
+        x: T,
         y: T,
         z: T,
-        // padding is required to allow bitcasting. without this compiler error: non power of 2 alignment
-        _padding: T = 1,
 
         const Self = @This();
         pub fn init(x: T, y: T, z: T) Self {
@@ -83,9 +80,16 @@ pub fn Vec3(comptime T: type) type {
             };
         }
 
-        // fields_len = 4 rather than 3 is required to allow bitcasting with same size
-        pub usingnamespace VecMethods(T, 4, Self);
+        pub usingnamespace VecMethods(T, 3, Self);
     };
+}
+
+test "simd bitcast" {
+    const V3 = extern struct { x: u32, y: u32, z: u32 };
+    const init = [1]u32{0} ** 3;
+    const v3 = @bitCast(V3, init);
+    const u32x3 = std.meta.Vector(3, u32);
+    _ = @as(u32x3, @bitCast([3]u32, v3));
 }
 
 pub const Mat4 = struct {
