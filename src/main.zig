@@ -78,6 +78,14 @@ export fn keyCallback(_: ?*c.GLFWwindow, key: c_int, _: c_int, action: c_int, _:
     }
 }
 
+export fn soundCallback(_: [*c]c.ma_device, _: ?*c_void, _: ?*const c_void, _: c_uint) void {
+    std.debug.print("SOUND CALLBACK!\n", .{});
+}
+
+const Error = error{
+    InitSoundDevice,
+};
+
 pub fn main() anyerror!void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
@@ -85,6 +93,18 @@ pub fn main() anyerror!void {
 
     win = try Window.init(640, 640, "junk -- float");
     defer win.close();
+
+    var cfg = c.ma_device_config_init(c.ma_device_type_playback);
+    cfg.playback.format = c.ma_format_f32;
+    cfg.playback.channels = 2;
+    cfg.sampleRate = 4800;
+    cfg.dataCallback = soundCallback;
+
+    var device: c.ma_device = undefined;
+    if (c.ma_device_init(null, &cfg, &device) != c.MA_SUCCESS) {
+        return Error.InitSoundDevice;
+    }
+    defer c.ma_device_uninit(&device);
 
     var mgr = try Manager.init(alloc, 500);
 

@@ -57,6 +57,5 @@ pub fn projection(self: Camera) Mat4 {
     const bottom = -((self.target.y + half_height) / float_height - 1);
     const right = (self.target.x + half_width) / float_width - 1;
 
-    std.debug.print("Top: {d}, Bot: {d}, Left: {d}, Right: {d}\n", .{ top, bottom, left, right });
     return Mat4.orthographic(top, left, bottom, right);
 }

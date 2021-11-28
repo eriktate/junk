@@ -2,6 +2,7 @@ const std = @import("std");
 
 const glfw_path = "./vendor/glfw/";
 const epoxy_path = "./vendor/libepoxy";
+const miniaudio_path = "./vendor/miniaudio";
 
 pub fn build(b: *std.build.Builder) void {
     // Standard target options allows the person running `zig build` to choose
@@ -18,13 +19,10 @@ pub fn build(b: *std.build.Builder) void {
     exe.setTarget(target);
     exe.setBuildMode(mode);
 
-    // The ./include/ dir contains any C files we have to write to integrate with
-    // vendored libs
-    exe.addIncludeDir("./include");
-
-    // Single-file header libraries (like stb_image.h) live in the root of the vendor
-    // directory, so we need those too
     exe.addIncludeDir("./vendor");
+    exe.addIncludeDir("./vendor/miniaudio");
+    exe.addIncludeDir("./vendor/miniaudio/research");
+    exe.addCSourceFiles(&.{ "./include/miniaudio_impl.c", "./include/stb_image_impl.c" }, &[_][]const u8{"-Werror"});
 
     // Find GLFW
     exe.addIncludeDir(glfw_path ++ "include");
@@ -36,6 +34,9 @@ pub fn build(b: *std.build.Builder) void {
 
     exe.linkSystemLibrary("glfw");
     exe.linkSystemLibrary("epoxy");
+    exe.linkSystemLibrary("pthread");
+    exe.linkSystemLibrary("m");
+    exe.linkSystemLibrary("dl");
     exe.linkLibC();
 
     exe.install();

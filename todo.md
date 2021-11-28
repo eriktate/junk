@@ -1,4 +1,11 @@
-# TODO next stream
+# TODO 11/28/21
+- [ ] Sound!!
+	- [x] Pick an audio format (vorbis)
+	- [ ] Make some sound effects
+	- [ ] Choose/integrate a playback lib
+	- [ ] Choose/integrate a loader/decoder.
+	- [ ] Play a sound
+- [ ] Understand orthographic projection scaling
 - [ ] Level editor zoom
 - [ ] Load tileset on level load (so we can edit levels)
 
