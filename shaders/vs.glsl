@@ -16,7 +16,7 @@ void main() {
 	// re-map pixel coordinates to screen space
 	pos = vec3(
 		(in_pos.x / width) * 2 - 1,
-		-((in_pos.y / width) * 2 - 1),
+		-((in_pos.y / height) * 2 - 1),
 		in_pos.z
 	);
 

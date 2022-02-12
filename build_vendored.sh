@@ -7,7 +7,6 @@ cd ./build
 make
 popd
 pwd
-return
 
 echo "Building epoxy..."
 pushd ./vendor/libepoxy

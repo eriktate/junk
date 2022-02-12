@@ -4,6 +4,7 @@ layout (location = 0) in vec3 in_pos;
 
 uniform uint width;
 uniform uint height;
+uniform mat4 projection;
 
 // out vec3 color;
 
@@ -17,6 +18,7 @@ void main() {
 		in_pos.z
 	);
 
-	gl_Position = vec4(pos, 1.0);
+	gl_Position = projection * vec4(pos, 1.0);
+	// gl_Position = vec4(pos, 1.0);
 	// out_color = color;
 }

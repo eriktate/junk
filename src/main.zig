@@ -78,34 +78,82 @@ export fn keyCallback(_: ?*c.GLFWwindow, key: c_int, _: c_int, action: c_int, _:
     }
 }
 
-export fn soundCallback(_: [*c]c.ma_device, _: ?*c_void, _: ?*const c_void, _: c_uint) void {
-    std.debug.print("SOUND CALLBACK!\n", .{});
+export fn soundCallback(dev: [*c]c.ma_device, out: ?*c_void, _: ?*const c_void, frame_count: c_uint) void {
+    std.debug.print("SOUND CALLBACK! Frame count: {d}\n", .{frame_count});
+    var decoder = @ptrCast(?*c.ma_decoder, &dev[0].pUserData);
+    if (decoder == null) {
+        std.debug.print("Borked decoder!\n", .{});
+        return;
+    }
+
+    // std.debug.print("Decoder: {any}\n", .{decoder});
+    const frames_read = c.ma_decoder_read_pcm_frames(decoder, out, frame_count);
+    std.debug.print("Frames read: {d}\n", .{frames_read});
 }
 
 const Error = error{
     InitSoundDevice,
+    DecodeAudio,
+    DeviceStart,
+    ContextCreation,
+    GetDevices,
 };
+
+fn sound() !void {
+    var context: c.ma_context = undefined;
+    if (c.ma_context_init(null, 0, null, &context) != c.MA_SUCCESS) {
+        return error.ContextCreation;
+    }
+
+    var playback_infos: [*c]c.ma_device_info = undefined;
+    var playback_count: u32 = undefined;
+    if (c.ma_context_get_devices(&context, &playback_infos, &playback_count, null, null) != c.MA_SUCCESS) {
+        return error.GetDevices;
+    }
+
+    var idx: usize = 0;
+    while (idx < playback_count) {
+        const playback = playback_infos[idx];
+        std.debug.print("{d}: {s} {s}\n", .{ idx, playback.name, playback.id.pulse });
+        idx += 1;
+    }
+
+    var decoder: c.ma_decoder = undefined;
+    const result = c.ma_decoder_init_file("./assets/sounds/jump.wav", null, &decoder);
+    if (result != c.MA_SUCCESS) {
+        return error.DecodeAudio;
+    }
+    defer _ = c.ma_decoder_uninit(&decoder);
+
+    var cfg = c.ma_device_config_init(c.ma_device_type_playback);
+    cfg.playback.pDeviceID = &playback_infos[2].id;
+    cfg.playback.format = decoder.outputFormat;
+    cfg.playback.channels = decoder.outputChannels;
+    cfg.sampleRate = decoder.outputSampleRate;
+    cfg.dataCallback = soundCallback;
+    cfg.pUserData = &decoder;
+
+    var device: c.ma_device = undefined;
+    if (c.ma_device_init(&context, &cfg, &device) != c.MA_SUCCESS) {
+        return Error.InitSoundDevice;
+    }
+    defer c.ma_device_uninit(&device);
+
+    std.debug.print("device ID: {s} {s}\n", .{ device.playback.name, device.playback.id.pulse });
+    if (c.ma_device_start(&device) != c.MA_SUCCESS) {
+        return Error.DeviceStart;
+    }
+}
 
 pub fn main() anyerror!void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
     var alloc = &arena.allocator;
 
-    win = try Window.init(640, 640, "junk -- float");
+    win = try Window.init(1280, 720, "junk -- float");
     defer win.close();
 
-    var cfg = c.ma_device_config_init(c.ma_device_type_playback);
-    cfg.playback.format = c.ma_format_f32;
-    cfg.playback.channels = 2;
-    cfg.sampleRate = 4800;
-    cfg.dataCallback = soundCallback;
-
-    var device: c.ma_device = undefined;
-    if (c.ma_device_init(null, &cfg, &device) != c.MA_SUCCESS) {
-        return Error.InitSoundDevice;
-    }
-    defer c.ma_device_uninit(&device);
-
+    try sound();
     var mgr = try Manager.init(alloc, 500);
 
     const ctrl = Controller.init(&win);
@@ -118,12 +166,13 @@ pub fn main() anyerror!void {
     const debug_fs_src = @embedFile("../shaders/debug_fs.glsl");
     const debug_shader = try Shader.init(debug_vs_src, debug_fs_src);
 
-    var camera = Camera.init(&win, Vec3.init(0, 0, 0), lag.Vec2(f32).init(32, 32), 320, 320);
+    var camera = Camera.init(&win, Vec3.init(0, 0, 0), lag.Vec2(f32).init(32, 32), 640, 360);
     // set screen resolution uniforms for use in coordinate mapping
     // modifying this affects the "zoom" level
     shader.setUint("width", win.width);
     shader.setUint("height", win.height);
     shader.setMat4("projection", camera.projection());
+    debug_shader.setMat4("projection", camera.projection());
     debug_shader.setUint("width", win.width);
     debug_shader.setUint("height", win.height);
 
@@ -180,7 +229,7 @@ pub fn main() anyerror!void {
     // const wasteland_spr = Sprite.init(Vec3.init(0, 0, 0), wasteland_tex.width, wasteland_tex.height, Origin.init(wasteland_tex.idx, Vec2.init(0, 0)));
     const lab_spr = Sprite.init(Vec3.init(0, 0, 0), lab_tex.width, lab_tex.height, Origin.init(lab_tex.idx, Vec2.init(0, 0)));
 
-    const player_id = try mgr.add(EntityKind.Player, player_spr, BBox.init(player_spr.pos, 7, 14).withOffset(Vec3.init(4, 9, 0)));
+    const player_id = try mgr.add(EntityKind.Player, player_spr, BBox.init(player_spr.pos, 7, 15).withOffset(Vec3.init(4, 9, 0)));
     _ = try mgr.add(EntityKind.Decor, lab_spr, null);
 
     var player = Player.init(player_id, &mgr, telly_idle, telly_run, telly_jump, telly_fall);
@@ -230,6 +279,7 @@ pub fn main() anyerror!void {
         mgr.tick(delta);
         try level_editor.tick();
         camera.setTarget(mgr.getSprite(player.id).?.pos);
+        debug_shader.setMat4("projection", camera.projection());
         shader.setMat4("projection", camera.projection());
         gl.clear();
         c.glBindVertexArray(vao);
@@ -240,7 +290,9 @@ pub fn main() anyerror!void {
         c.glDrawElements(c.GL_TRIANGLES, @intCast(c_int, mgr.indices.items.len), c.GL_UNSIGNED_INT, null);
 
         // render debug artifacts
-        const cursor_pos = level_editor.getCursorPos();
+        var cursor_pos = camera.projection().transform(level_editor.getCursorPos());
+        // cursor_pos.x = cursor_pos.x + camera.target.x - @intToFloat(f32, camera.width / 2);
+        // cursor_pos.y = cursor_pos.y + camera.target.y - @intToFloat(f32, camera.height / 2);
         try debug.drawLine(cursor_pos.add(Vec3.init(0, 0, 0)), cursor_pos.add(Vec3.init(16, 0, 0)));
         try debug.drawLine(cursor_pos.add(Vec3.init(0, 0, 0)), cursor_pos.add(Vec3.init(0, 16, 0)));
         debug.draw();

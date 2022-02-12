@@ -351,7 +351,8 @@ pub const Manager = struct {
 
     pub fn drawBoxes(self: Manager, debug: *Debug) !void {
         for (self.boxes.items) |opt_box| {
-            if (opt_box) |box| {
+            if (opt_box) |box_no_offset| {
+                const box = box_no_offset.afterOffset();
                 // top
                 try debug.drawLine(box.pos, box.pos.add(Vec3.init(box.width, 0, 0)));
                 // left

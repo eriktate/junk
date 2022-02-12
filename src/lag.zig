@@ -45,6 +45,10 @@ pub fn VecMethods(comptime T: type, comptime fields_len: u8, comptime Self: type
         pub fn zero() Self {
             return fromArray([1]T{0} ** fields_len);
         }
+
+        pub fn dot(self: Self, other: Self) T {
+            return @sqrt(@reduce(.Add, self.asSimd() * other.asSimd()));
+        }
     };
 }
 
@@ -114,6 +118,14 @@ pub const Mat4 = struct {
                 0,                    0,                    1, 0,
                 -((r + l) / (r - l)), -((t + b) / (t - b)), 0, 1,
             },
+        };
+    }
+
+    pub fn transform(self: Mat4, in: Vec3(f32)) Vec3(f32) {
+        return Vec3(f32){
+            .x = Vec3(f32).init(self.data[0], self.data[4], self.data[2]).dot(in),
+            .y = Vec3(f32).init(self.data[4], self.data[5], self.data[6]).dot(in),
+            .z = Vec3(f32).init(self.data[8], self.data[9], self.data[10]).dot(in),
         };
     }
 };

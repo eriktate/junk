@@ -25,6 +25,12 @@ pub fn withOffset(self: BBox, offset: Vec3) BBox {
     return box;
 }
 
+pub fn afterOffset(self: BBox) BBox {
+    var box = self;
+    box.pos = self.pos.add(self.offset);
+    return box;
+}
+
 pub fn setOffset(self: *BBox, offset: Vec3) void {
     self.offset = offset;
 }

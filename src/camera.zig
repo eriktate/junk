@@ -9,16 +9,16 @@ const Camera = @This();
 win: *Window,
 target: Vec3,
 tolerance: Vec2,
-width: u32,
-height: u32,
+width: f32,
+height: f32,
 
 pub fn init(win: *Window, target: Vec3, tolerance: Vec2, width: u32, height: u32) Camera {
     return Camera{
         .win = win,
         .target = target,
         .tolerance = tolerance,
-        .width = width,
-        .height = height,
+        .width = @intToFloat(f32, width),
+        .height = @intToFloat(f32, height),
     };
 }
 
@@ -47,15 +47,16 @@ pub fn setTarget(self: *Camera, target: Vec3) void {
 }
 
 pub fn projection(self: Camera) Mat4 {
-    const float_width = @intToFloat(f32, self.width);
-    const float_height = @intToFloat(f32, self.height);
-    const half_width = float_width / 2;
-    const half_height = float_height / 2;
+    const viewport_width = @intToFloat(f32, self.win.width);
+    const viewport_height = @intToFloat(f32, self.win.height);
+    const half_width = self.width / 2;
+    const half_height = self.height / 2;
 
-    const top = -((self.target.y - half_height) / float_height - 1);
-    const left = (self.target.x - half_width) / float_width - 1;
-    const bottom = -((self.target.y + half_height) / float_height - 1);
-    const right = (self.target.x + half_width) / float_width - 1;
+    std.debug.print("width: {d}, height: {d}, viewport_w: {d}, viewport_h: {d}\n", .{ self.width, self.height, viewport_width, viewport_height });
+    const top = -(((self.target.y - half_height) / viewport_height) * 2 - 1);
+    const bottom = -(((self.target.y + half_height) / viewport_height) * 2 - 1);
+    const left = ((self.target.x - half_width) / viewport_width) * 2 - 1;
+    const right = ((self.target.x + half_width) / viewport_width) * 2 - 1;
 
     return Mat4.orthographic(top, left, bottom, right);
 }
