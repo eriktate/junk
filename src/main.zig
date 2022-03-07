@@ -79,16 +79,19 @@ export fn keyCallback(_: ?*c.GLFWwindow, key: c_int, _: c_int, action: c_int, _:
 }
 
 export fn soundCallback(dev: [*c]c.ma_device, out: ?*c_void, _: ?*const c_void, frame_count: c_uint) void {
-    std.debug.print("SOUND CALLBACK! Frame count: {d}\n", .{frame_count});
-    var decoder = @ptrCast(?*c.ma_decoder, &dev[0].pUserData);
+    var device = @ptrCast(?*c.ma_device, dev);
+    if (device == null) {
+        std.debug.print("Borked device!\n", .{});
+        return;
+    }
+
+    var decoder = @ptrCast(?*c.ma_decoder, @alignCast(@alignOf(?*c.ma_decoder), device.?.pUserData));
     if (decoder == null) {
         std.debug.print("Borked decoder!\n", .{});
         return;
     }
 
-    // std.debug.print("Decoder: {any}\n", .{decoder});
-    const frames_read = c.ma_decoder_read_pcm_frames(decoder, out, frame_count);
-    std.debug.print("Frames read: {d}\n", .{frames_read});
+    _ = c.ma_decoder_read_pcm_frames(decoder, out, frame_count, null);
 }
 
 const Error = error{
@@ -99,48 +102,29 @@ const Error = error{
     GetDevices,
 };
 
-fn sound() !void {
-    var context: c.ma_context = undefined;
-    if (c.ma_context_init(null, 0, null, &context) != c.MA_SUCCESS) {
-        return error.ContextCreation;
-    }
-
-    var playback_infos: [*c]c.ma_device_info = undefined;
-    var playback_count: u32 = undefined;
-    if (c.ma_context_get_devices(&context, &playback_infos, &playback_count, null, null) != c.MA_SUCCESS) {
-        return error.GetDevices;
-    }
-
-    var idx: usize = 0;
-    while (idx < playback_count) {
-        const playback = playback_infos[idx];
-        std.debug.print("{d}: {s} {s}\n", .{ idx, playback.name, playback.id.pulse });
-        idx += 1;
-    }
-
-    var decoder: c.ma_decoder = undefined;
-    const result = c.ma_decoder_init_file("./assets/sounds/jump.wav", null, &decoder);
+fn sound(alloc: *std.mem.Allocator) !void {
+    var decoder: *c.ma_decoder = try alloc.create(c.ma_decoder);
+    const result = c.ma_decoder_init_file("./assets/sounds/song.wav", null, decoder);
     if (result != c.MA_SUCCESS) {
         return error.DecodeAudio;
     }
-    defer _ = c.ma_decoder_uninit(&decoder);
+    // defer _ = c.ma_decoder_uninit(&decoder);
 
     var cfg = c.ma_device_config_init(c.ma_device_type_playback);
-    cfg.playback.pDeviceID = &playback_infos[2].id;
     cfg.playback.format = decoder.outputFormat;
     cfg.playback.channels = decoder.outputChannels;
     cfg.sampleRate = decoder.outputSampleRate;
     cfg.dataCallback = soundCallback;
-    cfg.pUserData = &decoder;
+    cfg.pUserData = decoder;
 
-    var device: c.ma_device = undefined;
-    if (c.ma_device_init(&context, &cfg, &device) != c.MA_SUCCESS) {
+    var device: *c.ma_device = try alloc.create(c.ma_device);
+    if (c.ma_device_init(null, &cfg, device) != c.MA_SUCCESS) {
         return Error.InitSoundDevice;
     }
-    defer c.ma_device_uninit(&device);
+    // defer c.ma_device_uninit(&device);
 
     std.debug.print("device ID: {s} {s}\n", .{ device.playback.name, device.playback.id.pulse });
-    if (c.ma_device_start(&device) != c.MA_SUCCESS) {
+    if (c.ma_device_start(device) != c.MA_SUCCESS) {
         return Error.DeviceStart;
     }
 }
@@ -153,7 +137,9 @@ pub fn main() anyerror!void {
     win = try Window.init(1280, 720, "junk -- float");
     defer win.close();
 
-    try sound();
+    std.debug.print("Before sound\n", .{});
+    try sound(alloc);
+    std.debug.print("After sound\n", .{});
     var mgr = try Manager.init(alloc, 500);
 
     const ctrl = Controller.init(&win);

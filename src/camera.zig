@@ -52,7 +52,6 @@ pub fn projection(self: Camera) Mat4 {
     const half_width = self.width / 2;
     const half_height = self.height / 2;
 
-    std.debug.print("width: {d}, height: {d}, viewport_w: {d}, viewport_h: {d}\n", .{ self.width, self.height, viewport_width, viewport_height });
     const top = -(((self.target.y - half_height) / viewport_height) * 2 - 1);
     const bottom = -(((self.target.y + half_height) / viewport_height) * 2 - 1);
     const left = ((self.target.x - half_width) / viewport_width) * 2 - 1;

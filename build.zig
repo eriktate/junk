@@ -21,7 +21,7 @@ pub fn build(b: *std.build.Builder) void {
 
     exe.addIncludeDir("./vendor");
     exe.addIncludeDir(ma_path);
-    exe.addIncludeDir(ma_path ++ "/research");
+    // exe.addIncludeDir(ma_path ++ "/research");
     exe.addCSourceFiles(&.{ "./include/miniaudio_impl.c", "./include/stb_image_impl.c" }, &[_][]const u8{"-Werror"});
 
     // Find GLFW
