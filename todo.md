@@ -1,3 +1,8 @@
+# TODO
+- [ ] Create a sound manager
+- [ ] Add a "play/pause" button
+- [ ] Add entities to level editor
+
 # TODO 12/11/21
 - [ ] Understand orthographic projection scaling
 - [ ] Level editor zoom
