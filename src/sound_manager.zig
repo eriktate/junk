@@ -13,7 +13,6 @@ const Sound = enum(usize) {
     Jump,
     Walk,
     Song,
-    Unknown,
 };
 
 const DecodedFrames = struct {
@@ -33,13 +32,13 @@ const SAMPLE_RATE = 4800;
 const MAX_CONCURRENT_SOUNDS = 100;
 
 // raw, decoded audio data lookup
-var decoded: [Sound.Unknown]DecodedFrames = undefined;
+var decoded: [std.enums.values(Sound).len]DecodedFrames = undefined;
 var device: *c.ma_device = undefined;
 var playing: [MAX_CONCURRENT_SOUNDS]?PlayingSound = undefined;
 
 
 
-fn dataCallback(dev: [*c]c.ma_device, out: ?*c_void, _: ?*const c_void, frame_count: c_uint) void {
+fn dataCallback(_: [*c]c.ma_device, out: ?*anyopaque, _: ?*const anyopaque, frame_count: c_uint) void {
     for (playing) |opt_sound| {
         if (opt_sound) |*sound| {
             var frames_read: u64 = 0;
@@ -57,7 +56,7 @@ fn dataCallback(dev: [*c]c.ma_device, out: ?*c_void, _: ?*const c_void, frame_co
     }
 }
 
-fn soundToPath(snd: Sound) []u8 {
+fn soundToPath(snd: Sound) [*c]const u8 {
     return switch (snd) {
         .Jump => "./assets/sounds/jump.ogg",
         .Walk => "./assets/sounds/walk.ogg",
@@ -65,12 +64,12 @@ fn soundToPath(snd: Sound) []u8 {
     };
 }
 
-pub fn init(alloc: *std.mem.Allocator) Error!SoundManager {
-    // initialize all decoders
+pub fn init() Error!void {
+    // initialize all audio data
     for (std.enums.values(Sound)) |val| {
         const path = soundToPath(val);
         const decoded_frames: DecodedFrames = undefined;
-        const res = c.ma_decode_file(path, null, &decoded_frames.frame_count, &decoded_frames.frames);
+        const res = c.ma_decode_file(path, null, decoded_frames.frame_count, &decoded_frames.frames);
         if (res != c.MA_SUCCESS) {
             std.debug.print("failed to load: {s}", .{path});
             return Error.DecodeAudio;
@@ -97,14 +96,14 @@ pub fn init(alloc: *std.mem.Allocator) Error!SoundManager {
 
 pub fn free() Error!void {
     c.ma_device_stop(device);
-    for (decoders) |*decoder| {
+    for (decoded) |*decoder| {
         c.ma_decoder_uninit(decoder);
     }
 
     c.ma_device_uninit(&device);
 }
 
-fn playSound(snd: Sound, loop: bool) Error!void {
+fn playSound(snd: Sound, looping: bool) Error!void {
     const buffer_cfg = c.ma_audio_buffer_config_init(
         SAMPLE_FORMAT,
         CHANNEL_COUNT,
@@ -121,7 +120,7 @@ fn playSound(snd: Sound, loop: bool) Error!void {
         if (opt_sound == null) {
             playing[idx] = PlayingSound{
                 .sound = snd,
-                .loop = loop,
+                .loop = looping,
                 .buffer = audio_buffer,
             };
         }

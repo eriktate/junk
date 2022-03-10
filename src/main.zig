@@ -13,6 +13,7 @@ const Debug = @import("debug.zig");
 const LevelEditor = @import("level_editor.zig").LevelEditor;
 const Player = @import("player.zig");
 const Camera = @import("camera.zig");
+const SoundManager = @import("sound_manager.zig");
 
 const Quad = gl.Quad;
 const Vertex = gl.Vertex;
@@ -138,7 +139,8 @@ pub fn main() anyerror!void {
     defer win.close();
 
     std.debug.print("Before sound\n", .{});
-    try sound(alloc);
+    // try sound(alloc);
+    try SoundManager.init();
     std.debug.print("After sound\n", .{});
     var mgr = try Manager.init(alloc, 500);
 
