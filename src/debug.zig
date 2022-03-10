@@ -16,7 +16,7 @@ active: bool,
 vao: u32,
 vbo: u32,
 
-pub fn init(alloc: *Allocator, cap: u64, shader: Shader) !Debug {
+pub fn init(alloc: Allocator, cap: u64, shader: Shader) !Debug {
     var vertices = ArrayList(Vertex).init(alloc);
 
     try vertices.ensureTotalCapacity(cap);
@@ -37,7 +37,7 @@ pub fn init(alloc: *Allocator, cap: u64, shader: Shader) !Debug {
     c.glBufferData(c.GL_ARRAY_BUFFER, @intCast(c_long, @sizeOf(Vertex) * debug.vertices.items.len), debug.vertices.items.ptr, c.GL_DYNAMIC_DRAW);
 
     c.glVertexAttribPointer(0, 3, c.GL_FLOAT, c.GL_FALSE, @sizeOf(Vertex), null);
-    c.glVertexAttribPointer(1, 2, c.GL_UNSIGNED_INT, c.GL_FALSE, @sizeOf(Vertex), @intToPtr(*const c_void, @sizeOf(Vec3)));
+    c.glVertexAttribPointer(1, 2, c.GL_UNSIGNED_INT, c.GL_FALSE, @sizeOf(Vertex), @intToPtr(*const anyopaque, @sizeOf(Vec3)));
     c.glEnableVertexAttribArray(0);
     c.glEnableVertexAttribArray(1);
     c.glBindVertexArray(0);

@@ -78,7 +78,7 @@ export fn keyCallback(_: ?*c.GLFWwindow, key: c_int, _: c_int, action: c_int, _:
     }
 }
 
-export fn soundCallback(dev: [*c]c.ma_device, out: ?*c_void, _: ?*const c_void, frame_count: c_uint) void {
+export fn soundCallback(dev: [*c]c.ma_device, out: ?*anyopaque, _: ?*const anyopaque, frame_count: c_uint) void {
     var device = @ptrCast(?*c.ma_device, dev);
     if (device == null) {
         std.debug.print("Borked device!\n", .{});
@@ -102,7 +102,7 @@ const Error = error{
     GetDevices,
 };
 
-fn sound(alloc: *std.mem.Allocator) !void {
+fn sound(alloc: std.mem.Allocator) !void {
     var decoder: *c.ma_decoder = try alloc.create(c.ma_decoder);
     const result = c.ma_decoder_init_file("./assets/sounds/song.wav", null, decoder);
     if (result != c.MA_SUCCESS) {
@@ -132,7 +132,7 @@ fn sound(alloc: *std.mem.Allocator) !void {
 pub fn main() anyerror!void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
-    var alloc = &arena.allocator;
+    var alloc = arena.allocator();
 
     win = try Window.init(1280, 720, "junk -- float");
     defer win.close();
@@ -229,8 +229,8 @@ pub fn main() anyerror!void {
     c.glBufferData(c.GL_ARRAY_BUFFER, @intCast(c_long, @sizeOf(Quad) * mgr.quads.items.len), mgr.quads.items.ptr, c.GL_DYNAMIC_DRAW);
 
     c.glVertexAttribPointer(0, 3, c.GL_FLOAT, c.GL_FALSE, @sizeOf(Vertex), null);
-    c.glVertexAttribPointer(1, 2, c.GL_UNSIGNED_INT, c.GL_FALSE, @sizeOf(Vertex), @intToPtr(*const c_void, @sizeOf(Vec3)));
-    c.glVertexAttribIPointer(2, 1, c.GL_UNSIGNED_INT, @sizeOf(Vertex), @intToPtr(*const c_void, @sizeOf(Vec3) + @sizeOf(Vec2)));
+    c.glVertexAttribPointer(1, 2, c.GL_UNSIGNED_INT, c.GL_FALSE, @sizeOf(Vertex), @intToPtr(*const anyopaque, @sizeOf(Vec3)));
+    c.glVertexAttribIPointer(2, 1, c.GL_UNSIGNED_INT, @sizeOf(Vertex), @intToPtr(*const anyopaque, @sizeOf(Vec3) + @sizeOf(Vec2)));
     c.glEnableVertexAttribArray(0);
     c.glEnableVertexAttribArray(1);
     c.glEnableVertexAttribArray(2);

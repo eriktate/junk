@@ -40,7 +40,7 @@ pub const Entity = struct {
 
 // NOTE: quads _can't_ be optional because it messes with their in-memory representation
 pub const Manager = struct {
-    alloc: *Allocator,
+    alloc: Allocator,
 
     entities: ArrayList(?Entity),
     sprites: ArrayList(?Sprite),
@@ -49,7 +49,7 @@ pub const Manager = struct {
     indices: ArrayList(u32),
     // TODO (etate): Maybe add an array of entities in the future?
 
-    pub fn init(alloc: *Allocator, cap: u64) !Manager {
+    pub fn init(alloc: Allocator, cap: u64) !Manager {
         var entities = ArrayList(?Entity).init(alloc);
         var sprites = ArrayList(?Sprite).init(alloc);
         var quads = ArrayList(Quad).init(alloc);

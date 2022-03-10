@@ -3,7 +3,7 @@ const c = @import("c.zig");
 const Mat4 = @import("lag.zig").Mat4;
 
 const fs = std.fs;
-const warn = std.debug.warn;
+const print = std.debug.print;
 
 const ShaderError = error{
     VertexCompilationFailed,
@@ -49,7 +49,7 @@ pub fn init(vert_src: []const u8, frag_src: []const u8) anyerror!Shader {
     c.glGetShaderiv(vert, c.GL_COMPILE_STATUS, &success);
     if (success != 1) {
         c.glGetShaderInfoLog(vert, 512, null, log);
-        warn("Shader Log: {s}", .{log});
+        print("Shader Log: {s}", .{log});
         return ShaderError.VertexCompilationFailed;
     }
 
@@ -60,7 +60,7 @@ pub fn init(vert_src: []const u8, frag_src: []const u8) anyerror!Shader {
     c.glGetShaderiv(frag, c.GL_COMPILE_STATUS, &success);
     if (success != 1) {
         c.glGetShaderInfoLog(frag, 512, null, log);
-        warn("Shader Log: {s}", .{log});
+        print("Shader Log: {s}", .{log});
         return ShaderError.FragmentCompilationFailed;
     }
 
@@ -71,7 +71,7 @@ pub fn init(vert_src: []const u8, frag_src: []const u8) anyerror!Shader {
     c.glGetProgramiv(program, c.GL_LINK_STATUS, &success);
     if (success != 1) {
         c.glGetProgramInfoLog(program, 512, null, log);
-        warn("Shader Log: {s}", .{log});
+        print("Shader Log: {s}", .{log});
         return ShaderError.LinkingFailed;
     }
 

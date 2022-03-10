@@ -291,7 +291,7 @@ pub const LevelEditor = struct {
     pub fn loadLevel(self: LevelEditor, fname: []const u8) !void {
         var file = try std.fs.cwd().openFile(
             fname,
-            .{ .read = true },
+            .{},
         );
         defer file.close();
 
