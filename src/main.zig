@@ -14,6 +14,7 @@ const LevelEditor = @import("level_editor.zig").LevelEditor;
 const Player = @import("player.zig");
 const Camera = @import("camera.zig");
 const SoundManager = @import("sound_manager.zig");
+const Sound = SoundManager.Sound;
 
 const Quad = gl.Quad;
 const Vertex = gl.Vertex;
@@ -105,7 +106,7 @@ const Error = error{
 
 fn sound(alloc: std.mem.Allocator) !void {
     var decoder: *c.ma_decoder = try alloc.create(c.ma_decoder);
-    const result = c.ma_decoder_init_file("./assets/sounds/song.wav", null, decoder);
+    const result = c.ma_decoder_init_file("./assets/sounds/song.ogg", null, decoder);
     if (result != c.MA_SUCCESS) {
         return error.DecodeAudio;
     }
@@ -117,6 +118,10 @@ fn sound(alloc: std.mem.Allocator) !void {
     cfg.sampleRate = decoder.outputSampleRate;
     cfg.dataCallback = soundCallback;
     cfg.pUserData = decoder;
+
+    std.debug.print("Format: {d}\n", .{decoder.outputFormat});
+    std.debug.print("Channels: {d}\n", .{decoder.outputChannels});
+    std.debug.print("Sample Rate: {d}\n", .{decoder.outputSampleRate});
 
     var device: *c.ma_device = try alloc.create(c.ma_device);
     if (c.ma_device_init(null, &cfg, device) != c.MA_SUCCESS) {
@@ -131,17 +136,17 @@ fn sound(alloc: std.mem.Allocator) !void {
 }
 
 pub fn main() anyerror!void {
+    std.debug.print("STARTING GAME\n\n", .{});
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
     var alloc = arena.allocator();
 
-    win = try Window.init(1280, 720, "junk -- float");
+    win = try Window.init(1280, 720, "katai -- float");
     defer win.close();
 
-    std.debug.print("Before sound\n", .{});
     // try sound(alloc);
     try SoundManager.init();
-    std.debug.print("After sound\n", .{});
+    try SoundManager.loop(Sound.Song);
     var mgr = try Manager.init(alloc, 500);
 
     const ctrl = Controller.init(&win);
@@ -254,7 +259,17 @@ pub fn main() anyerror!void {
     var prev_time: f64 = now;
     var delta: f64 = 0;
 
+    var playing_jump = false;
     while (!win.shouldClose()) {
+        if (ctrl.getJump() and !playing_jump) {
+            try SoundManager.play(Sound.Jump);
+            playing_jump = true;
+        }
+
+        if (!ctrl.getJump()) {
+            playing_jump = false;
+        }
+
         // timings
         now = c.glfwGetTime();
         delta = now - prev_time;
